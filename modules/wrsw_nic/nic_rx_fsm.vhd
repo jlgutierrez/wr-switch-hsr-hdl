@@ -31,7 +31,7 @@ use work.nic_descriptors_pkg.all;
 
 use work.wr_fabric_pkg.all;
 use work.nic_wbgen2_pkg.all;
-use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 
 
 entity nic_rx_fsm is

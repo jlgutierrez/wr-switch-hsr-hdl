@@ -27,7 +27,7 @@ use IEEE.NUMERIC_STD.all;
 use work.nic_constants_pkg.all;
 use work.nic_descriptors_pkg.all;
 use work.wr_fabric_pkg.all;
-use work.endpoint_private_pkg.all;      -- dirty hack
+use work.endpoint_pkg.all;
 use work.nic_wbgen2_pkg.all;
 
 
