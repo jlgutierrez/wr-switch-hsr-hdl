@@ -196,7 +196,8 @@ architecture rtl of scb_top_bare is
   constant c_DBG_V_SWCORE  : integer := (3*10) + 2;         -- 3 resources, each has with of CNT of 10 bits +2 to make it 32
   constant c_DBG_N_REGS    : integer := 1 + integer(ceil(real(c_DBG_V_SWCORE)/real(32))); -- 32-bits debug registers which go to HWIU
   constant c_TRU_EVENTS    : integer := 1;
-  constant c_ALL_EVENTS    : integer := c_TRU_EVENTS + c_RTU_EVENTS + c_epevents_sz;
+  constant c_NIC_EVENTS    : integer := 1;
+  constant c_ALL_EVENTS    : integer := c_NIC_EVENTS + c_TRU_EVENTS + c_RTU_EVENTS + c_epevents_sz;
   constant c_DUMMY_RMON    : boolean := false; -- define TRUE to enable dummy_rmon module for debugging PSTAT
   constant c_NUM_GPIO_PINS : integer := 1;
   constant c_NUM_IRQS      : integer := 4;
@@ -302,6 +303,7 @@ architecture rtl of scb_top_bare is
   -- PSTAT: RMON counters
   signal rtu_events  : std_logic_vector(c_NUM_PORTS*c_RTU_EVENTS  -1 downto 0);  --
   signal ep_events   : std_logic_vector(c_NUM_PORTS*c_epevents_sz -1 downto 0);  --
+  signal nic_events  : std_logic_vector((c_NUM_PORTS+1)*c_NIC_EVENTS-1 downto 0);
   signal rmon_events : std_logic_vector(c_NUM_PORTS*c_ALL_EVENTS  -1 downto 0);  --
 
   --TEMP
@@ -600,7 +602,8 @@ begin
       generic map (
         g_interface_mode      => PIPELINED,
         g_address_granularity => BYTE,
-        g_port_mask_bits      => c_NUM_PORTS+1)
+        g_port_mask_bits      => c_NUM_PORTS+1,
+        g_rmon_events_pp      => c_NIC_EVENTS)
       port map (
         clk_sys_i           => clk_sys,
         rst_n_i             => rst_n_sys,
@@ -614,7 +617,8 @@ begin
         rtu_rsp_valid_o     => rtu_rsp(c_NUM_PORTS).valid,
         rtu_rsp_ack_i       => rtu_rsp_ack(c_NUM_PORTS),
         wb_i                => cnx_master_out(c_SLAVE_NIC),
-        wb_o                => cnx_master_in(c_SLAVE_NIC));
+        wb_o                => cnx_master_in(c_SLAVE_NIC),
+        rmon_events_o       => nic_events);
   
     rtu_rsp(c_NUM_PORTS).hp <= '0';
     fc_rx_pause(c_NUM_PORTS)       <= c_zero_pause; -- no pause for NIC  
@@ -1052,6 +1056,7 @@ begin
 
   gen_events_assemble : for i in 0 to c_NUM_PORTS-1 generate
     rmon_events((i+1)*c_ALL_EVENTS-1 downto i*c_ALL_EVENTS) <= 
+                nic_events(i) &
                 std_logic(tru_resp.respMask(i) and tru_resp.valid)     &
                 rtu_events((i+1)*c_RTU_EVENTS-1 downto i*c_RTU_EVENTS) &
                 ep_events ((i+1)*c_epevents_sz-1 downto i*c_epevents_sz);

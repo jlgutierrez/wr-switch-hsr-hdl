@@ -51,7 +51,8 @@ use work.nic_wbgen2_pkg.all;
 entity nic_tx_fsm is
   generic(
     g_port_mask_bits  : integer := 32;
-    g_cyc_on_stall    : boolean := false);
+    g_cyc_on_stall    : boolean := false;
+    g_rmon_events_pp  : integer := 1);
   port (
     clk_sys_i : in  std_logic;
     rst_n_i   : in  std_logic;
@@ -117,7 +118,12 @@ entity nic_tx_fsm is
     buf_grant_i : in  std_logic;
     -- buffer address, data and write enable lines.
     buf_addr_o  : out std_logic_vector(c_nic_buf_size_log2-3 downto 0);
-    buf_data_i  : in  std_logic_vector(31 downto 0)
+    buf_data_i  : in  std_logic_vector(31 downto 0);
+
+-------------------------------------------------------------------------------
+-- RMON events
+-------------------------------------------------------------------------------
+    rmon_events_o : out std_logic_vector(g_port_mask_bits*g_rmon_events_pp-1 downto 0)
   );
 end nic_tx_fsm;
 
@@ -155,6 +161,7 @@ architecture behavioral of nic_tx_fsm is
 
   signal rtu_valid_int    : std_logic;
   signal rtu_valid_int_d0 : std_logic;
+  signal rtu_port_mask    : std_logic_vector(g_port_mask_bits-1 downto 0);
 
   signal tx_err : std_logic;
   signal default_status_reg : t_wrf_status_reg;
@@ -182,7 +189,8 @@ begin  -- behavioral
   txdesc_new_o <= cur_tx_desc;
   src_o.stb 	 <= src_stb_int;
 	--because it's validated with rtu_rsp_valid_o and sw_core stores it to internal register on rtu_rsp_valid strobe
-  rtu_dst_port_mask_o <= cur_tx_desc.dpm(g_port_mask_bits-1 downto 0);
+  rtu_port_mask <= cur_tx_desc.dpm(g_port_mask_bits-1 downto 0);
+  rtu_dst_port_mask_o <= rtu_port_mask;
   rtu_prio_o          <= (others => '0');
   rtu_drop_o          <= '0';
 
@@ -513,4 +521,10 @@ begin  -- behavioral
       end if;
     end if;
   end process;
+
+  GEN_RMON: for I in 0 to g_port_mask_bits-1 generate
+    -- don't need to check if decision is drop, because in NIC, drop is always wired to 0
+    rmon_events_o(I*g_rmon_events_pp) <= rtu_valid_int and rtu_port_mask(I) and rtu_rsp_ack_i;
+  end generate;
+
 end behavioral;

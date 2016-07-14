@@ -62,7 +62,8 @@ entity xwrsw_nic is
       g_interface_mode      : t_wishbone_interface_mode      := CLASSIC;
       g_address_granularity : t_wishbone_address_granularity := WORD;
       g_src_cyc_on_stall    : boolean := false;
-      g_port_mask_bits      : integer := 32); --should be num_ports+1
+      g_port_mask_bits      : integer := 32; --should be num_ports+1
+      g_rmon_events_pp      : integer := 1);
   port (
     clk_sys_i : in std_logic;
     rst_n_i   : in std_logic;
@@ -92,7 +93,12 @@ entity xwrsw_nic is
 -------------------------------------------------------------------------------
 
     wb_i : in  t_wishbone_slave_in;
-    wb_o : out t_wishbone_slave_out
+    wb_o : out t_wishbone_slave_out;
+
+-------------------------------------------------------------------------------
+-- RMON events
+-------------------------------------------------------------------------------
+    rmon_events_o : out std_logic_vector(g_port_mask_bits*g_rmon_events_pp-1 downto 0)
     );
 
 end xwrsw_nic;
@@ -209,7 +215,8 @@ architecture rtl of xwrsw_nic is
   component nic_tx_fsm
     generic(
       g_port_mask_bits  : integer := 32;
-      g_cyc_on_stall    : boolean := false);
+      g_cyc_on_stall    : boolean := false;
+      g_rmon_events_pp  : integer := 1);
     port (
       clk_sys_i               : in  std_logic;
       rst_n_i                 : in  std_logic;
@@ -238,7 +245,8 @@ architecture rtl of xwrsw_nic is
       bna_i                   : in  std_logic;
       buf_grant_i             : in  std_logic;
       buf_addr_o              : out std_logic_vector(c_nic_buf_size_log2-3 downto 0);
-      buf_data_i              : in  std_logic_vector(31 downto 0));
+      buf_data_i              : in  std_logic_vector(31 downto 0);
+      rmon_events_o : out std_logic_vector(g_port_mask_bits*g_rmon_events_pp-1 downto 0));
   end component;
 
   signal rxdesc_request_next : std_logic;
@@ -542,7 +550,8 @@ begin  -- rtl
   U_TX_FSM : nic_tx_fsm
     generic map(
       g_cyc_on_stall    => g_src_cyc_on_stall,
-      g_port_mask_bits  => g_port_mask_bits)
+      g_port_mask_bits  => g_port_mask_bits,
+      g_rmon_events_pp  => g_rmon_events_pp)
     port map (
       clk_sys_i => clk_sys_i,
       rst_n_i   => nic_reset_n,
@@ -576,7 +585,8 @@ begin  -- rtl
       bna_i                   => tx_bna,
       buf_grant_i             => mem_grant_tx,
       buf_addr_o              => mem_addr_tx,
-      buf_data_i              => nic_mem_rd_data);
+      buf_data_i              => nic_mem_rd_data,
+      rmon_events_o           => rmon_events_o);
 
 
 end rtl;
