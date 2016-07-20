@@ -470,6 +470,8 @@ package wrsw_top_pkg is
     port (
 		rst_n_i : in  std_logic;
 		clk_i   : in  std_logic;
+		
+		link_ok_i : in std_logic_vector(g_num_ports-1 downto 0);
 
 		ep_snk_i : in  t_wrf_sink_in_array(g_num_ports-1 downto 0);
 		ep_snk_o : out t_wrf_sink_out_array(g_num_ports-1 downto 0);

@@ -66,6 +66,8 @@ entity wrsw_hsr_arbfromtaggers is
 	 	rst_n_i			: in	std_logic;
 		clk_i				: in	std_logic;
 		
+		link_ok_i		: in	std_logic_vector(1 downto 0);
+		
 		-- Towards endpoints Tx
 		ep_src_o		: out	t_wrf_source_out_array(1 downto 0);
 		ep_src_i		: in	t_wrf_source_in_array(1 downto 0);
@@ -1168,8 +1170,8 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 	trig2(27 downto 12)	<= snk_fab_1.data;
 	trig2(28)			<= snk_fab_1.dvalid;
 	
-	trig2(29)			<= stall(0) or ep_src_i(0).stall;
-	trig2(30)			<= stall(1) or ep_src_i(1).stall;
+	trig2(29)			<= ep_src_i(0).stall;
+	trig2(30)			<= ep_src_i(1).stall;
 	
 	trig0(8)				<= snk_fab_0.sof;
 	trig0(9)				<= snk_fab_0.eof;

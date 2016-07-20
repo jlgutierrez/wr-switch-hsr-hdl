@@ -346,6 +346,7 @@ architecture rtl of scb_top_bare is
 
   --TEMP
   signal dummy_events : std_logic_vector(c_NUM_PORTS*2-1 downto 0);
+  signal led_link		 : std_logic_vector(c_NUM_PORTS-1 downto 0);
 
   -----------------------------------------------------------------------------
   -- Component declarations
@@ -721,12 +722,14 @@ begin
 
           rmon_events_o => ep_events((i+1)*c_epevents_sz-1 downto i*c_epevents_sz),
 
-          led_link_o => led_link_o(i),
+          led_link_o => led_link(i),
           led_act_o  => led_act_o(i)
           );
 
           phys_o(i).tx_data <= ep_dbg_data_array(i);
           phys_o(i).tx_k    <= ep_dbg_k_array(i);
+			 
+			 led_link_o <= led_link;
 
       txtsu_timestamps(i).port_id(5) <= '0';
       
@@ -783,17 +786,19 @@ begin
 	  port map (
 		rst_n_i => rst_n_periph,
 		clk_i   => clk_sys,
+		
+		link_ok_i => led_link(2 downto 1),
         
-        ep_snk_o   => hsr_lre_snk_out(2 downto 1), -- rx
-        ep_snk_i   => hsr_lre_snk_in(2 downto 1),  -- rx
-        ep_src_i   => hsr_lre_src_in(2 downto 1),  -- tx
-        ep_src_o   => hsr_lre_src_out(2 downto 1), -- tx
+      ep_snk_o   => hsr_lre_snk_out(2 downto 1), -- rx
+      ep_snk_i   => hsr_lre_snk_in(2 downto 1),  -- rx
+      ep_src_i   => hsr_lre_src_in(2 downto 1),  -- tx
+      ep_src_o   => hsr_lre_src_out(2 downto 1), -- tx
         
-        swc_snk_o   => swc_snk_out(2 downto 1), -- tx
-        swc_snk_i   => swc_snk_in(2 downto 1),  -- tx
-        swc_src_i   => swc_src_in(2 downto 1),  -- rx
-        swc_src_o   => swc_src_out(2 downto 1)  -- rx
-      );	 
+      swc_snk_o   => swc_snk_out(2 downto 1), -- tx
+      swc_snk_i   => swc_snk_in(2 downto 1),  -- tx
+      swc_src_i   => swc_src_in(2 downto 1),  -- rx
+      swc_src_o   => swc_src_out(2 downto 1)  -- rx
+    );	 
 
     gen_terminate_unused_eps : for i in c_NUM_PORTS to c_MAX_PORTS-1 generate
       cnx_endpoint_in(i).ack   <= '1';

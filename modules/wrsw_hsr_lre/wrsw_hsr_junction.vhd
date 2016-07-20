@@ -63,6 +63,8 @@ entity wrsw_hsr_junction is
 	 	rst_n_i			: in	std_logic;
 		clk_i				: in	std_logic;
 		
+		link_ok_i		: in  std_logic_vector(1 downto 0);
+		
 		-- Towards endpoints Tx
 		ep_src_o		: out	t_wrf_source_out_array(1 downto 0);
 		ep_src_i		: in	t_wrf_source_in_array(1 downto 0);
@@ -96,21 +98,6 @@ architecture behavioral of wrsw_hsr_junction is
       TRIG3   : in    std_logic_vector(31 downto 0));
   end component;
   
-  component wrsw_hsr_arbfromtaggers
-	port(
-		rst_n_i			: in	std_logic;
-		clk_i				: in	std_logic;
-		
-		-- Towards endpoints Tx
-		ep_src_o		: out	t_wrf_source_out_array(1 downto 0);
-		ep_src_i		: in	t_wrf_source_in_array(1 downto 0);
-		
-		-- From hsr taggers
-		tagger_snk_i	: in	t_wrf_sink_in_array(1 downto 0);
-		tagger_snk_o	: out t_wrf_sink_out_array(1 downto 0));
-	end component;
-	
-
   signal CONTROL0 : std_logic_vector(35 downto 0);
   signal TRIG0		: std_logic_vector(31 downto 0);
   signal TRIG1		: std_logic_vector(31 downto 0);
@@ -126,6 +113,7 @@ architecture behavioral of wrsw_hsr_junction is
 	port map(
 		rst_n_i  		=> rst_n_i,
 		clk_i				=> clk_i,
+		link_ok_i		=> link_ok_i,
 		ep_src_o 		=> ep_src_o,
 		ep_src_i 		=> ep_src_i,
 		tagger_snk_i 	=> tagger_snk_i,

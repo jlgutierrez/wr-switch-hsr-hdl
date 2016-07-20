@@ -58,6 +58,8 @@ entity xwrsw_hsr_lre is
 
     rst_n_i : in  std_logic;
     clk_i   : in  std_logic;
+	 
+	 link_ok_i : std_logic_vector(g_num_ports-1 downto 0);
 
 -------------------------------------------------------------------------------
 -- pWB  : input (comes from the Endpoint)
@@ -208,6 +210,7 @@ architecture behavioral of xwrsw_hsr_lre is
 		port map(
 			rst_n_i			=> rst_n_i,
 			clk_i				=> clk_i,
+			link_ok_i		=> link_ok_i,
 			ep_src_o			=> ep_src_o,
 			ep_src_i			=> ep_src_i,
 			tagger_snk_i 	=> tagger_src_out,

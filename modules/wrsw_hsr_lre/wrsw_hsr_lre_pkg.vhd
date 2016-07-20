@@ -71,6 +71,8 @@ package wrsw_hsr_lre_pkg is
 		rst_n_i			: in	std_logic;
 		clk_i				: in	std_logic;
 		
+		link_ok_i		: in	std_logic_vector(1 downto 0);
+		
 		ep_src_o		: out	t_wrf_source_out_array(1 downto 0);
 		ep_src_i		: in	t_wrf_source_in_array(1 downto 0);
 
@@ -80,5 +82,21 @@ package wrsw_hsr_lre_pkg is
 		fwd_snk_i	: in	t_wrf_sink_in_array(1 downto 0);
 		fwd_snk_o	: out t_wrf_sink_out_array(1 downto 0));
 	end component;
+	
+  component wrsw_hsr_arbfromtaggers
+	port(
+		rst_n_i			: in	std_logic;
+		clk_i				: in	std_logic;
+		
+		link_ok_i		: in	std_logic_vector(1 downto 0);
+		
+		-- Towards endpoints Tx
+		ep_src_o		: out	t_wrf_source_out_array(1 downto 0);
+		ep_src_i		: in	t_wrf_source_in_array(1 downto 0);
+		
+		-- From hsr taggers
+		tagger_snk_i	: in	t_wrf_sink_in_array(1 downto 0);
+		tagger_snk_o	: out t_wrf_sink_out_array(1 downto 0));
+	end component;	
 
 end wrsw_hsr_lre_pkg;
