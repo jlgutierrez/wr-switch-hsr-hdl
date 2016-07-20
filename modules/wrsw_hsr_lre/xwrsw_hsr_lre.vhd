@@ -130,114 +130,116 @@ architecture behavioral of xwrsw_hsr_lre is
 
   begin --rtl
 
----- Uncomment this (and comment the rest all the way down) to disconnect the whole HSR LRE: 
+---- Uncomment this (and comment the rest all the way down) ---
+---- to disconnect the whole HSR LRE:                       ---
 --  ep_snk_o <= dummy_snk_out;
 --  ep_src_o <= dummy_src_out;
 --  
 --  swc_src_o <= dummy_src_out;
 --  swc_snk_o <= dummy_snk_out;
+---------------------------------------------------------------
 
-----   process(clk_i)
-----     begin
-----    if rising_edge(clk_i) then
+--   process(clk_i)
+--     begin
+--    if rising_edge(clk_i) then
+--
+--		  ep_snk_o <= swc_src_i;
+--      ep_src_o <= swc_snk_i;
+--
+--      swc_snk_o <= ep_src_i;
+--      swc_src_o <= ep_snk_i;
+--      
+
+--
+----		BYPASS_HSR: for J in 0 to 1 loop
+------			ep_src_o(j) <= tagger_src_out(j);
+------			tagger_src_in(j)	<= ep_src_i(j);
+----			
+----			swc_src_o(j) <= ep_snk_i(j);
+----			ep_snk_o(j) <= swc_src_i(j);
+----		end loop;
 ----
-----		  ep_snk_o <= swc_src_i;
-----      ep_src_o <= swc_snk_i;
-----
-----      swc_snk_o <= ep_src_i;
-----      swc_src_o <= ep_snk_i;
-----      
+--      BYPASS_NON_HSR: for J in 2 to 4 loop
+--        ep_snk_o(j)		<= swc_src_i(j);
+--        swc_src_o(j)	<= ep_snk_i(j);
+--		  ep_src_o(j) <= swc_snk_i(j);
+--		  swc_snk_o(j) <= ep_src_i(j);
+--      end loop;
+		
+--		BYPASS_NON_HSR_onemoretime: for J in 6 to c_NUM_PORTS loop
+--        ep_snk_o(j)		<= swc_src_i(j);
+--        swc_src_o(j)	<= ep_snk_i(j);
+--		  ep_src_o(j) <= swc_snk_i(j);
+--		  swc_snk_o(j) <= ep_src_i(j);
+--      end loop;
+
+		
+		
 --
-----
-------		BYPASS_HSR: for J in 0 to 1 loop
---------			ep_src_o(j) <= tagger_src_out(j);
---------			tagger_src_in(j)	<= ep_src_i(j);
-------			
-------			swc_src_o(j) <= ep_snk_i(j);
-------			ep_snk_o(j) <= swc_src_i(j);
-------		end loop;
-------
-----      BYPASS_NON_HSR: for J in 2 to 4 loop
-----        ep_snk_o(j)		<= swc_src_i(j);
-----        swc_src_o(j)	<= ep_snk_i(j);
-----		  ep_src_o(j) <= swc_snk_i(j);
-----		  swc_snk_o(j) <= ep_src_i(j);
-----      end loop;
---		
-----		BYPASS_NON_HSR_onemoretime: for J in 6 to c_NUM_PORTS loop
-----        ep_snk_o(j)		<= swc_src_i(j);
-----        swc_src_o(j)	<= ep_snk_i(j);
-----		  ep_src_o(j) <= swc_snk_i(j);
-----		  swc_snk_o(j) <= ep_src_i(j);
-----      end loop;
+--    end if;
+--  end process;
+  
+
+		
+		-- HSR-PORT INCOMING TRAFFIC BYPASSED
+		-- AS THERE IS NO LRE FOR CHECKING DUPLICATES YET:
+		
+		ep_snk_o(g_num_ports-1 downto 0) <= swc_src_i(g_num_ports-1 downto 0);
+		swc_src_o(g_num_ports-1 downto 0) <= ep_snk_i(g_num_ports-1 downto 0);
+		
+
+  GEN_TAGGERS: for I in 0 to 1 generate
+      -- Inserts HSR tag
+		-- Not implemented yet.
+      U_XHSR_TAGGER: xhsr_tagger
+        port map (
+          rst_n_i => rst_n_i,
+          clk_i   => clk_i,
+          snk_i   => swc_snk_i(i),
+          snk_o   => swc_snk_o(i),
+          src_o	=> tagger_src_out(i),
+          src_i   => tagger_src_in(i));
+    end generate;
+
+
+
+	 
+	U_junction : wrsw_hsr_junction
+		port map(
+			rst_n_i			=> rst_n_i,
+			clk_i				=> clk_i,
+			ep_src_o			=> ep_src_o,
+			ep_src_i			=> ep_src_i,
+			tagger_snk_i 	=> tagger_src_out,
+			tagger_snk_o 	=> tagger_src_in,
+			fwd_snk_i(0) 	=> c_dummy_snk_in,
+			fwd_snk_i(1)	=> c_dummy_snk_in,
+			fwd_snk_o		=> open);
+			
+
+	-- DEBUG --
+--	cs_icon : chipscope_icon
+--	port map(
+--		CONTROL0	=> CONTROL0
+--	);
+--	cs_ila : chipscope_ila
+--	port map(
+--		CLK		=> clk_i,
+--		CONTROL	=> CONTROL0,
+--		TRIG0		=> TRIG0,
+--		TRIG1		=> TRIG1,
+--		TRIG2		=> TRIG2,
+--		TRIG3		=> TRIG3
+--	);
+--	
+--trig0(1 downto 0) <= ep_snk_i(0).adr;
+--trig0(17 downto 2) <= ep_snk_i(0).dat;
+--trig0(18) <= ep_snk_i(0).cyc;
+--trig0(19) <= ep_snk_i(0).stb;
 --
---		
---		
-----
-----    end if;
-----  end process;
---  
---
---		
---		-- HSR-PORT INCOMING TRAFFIC BYPASSED
---		-- AS THERE IS NO LRE FOR CHECKING DUPLICATES YET:
---		
---		ep_snk_o(g_num_ports-1 downto 0) <= swc_src_i(g_num_ports-1 downto 0);
---		swc_src_o(g_num_ports-1 downto 0) <= ep_snk_i(g_num_ports-1 downto 0);
---		
---
---  GEN_TAGGERS: for I in 0 to 1 generate
---      -- Inserts HSR tag
---		-- Not implemented yet.
---      U_XHSR_TAGGER: xhsr_tagger
---        port map (
---          rst_n_i => rst_n_i,
---          clk_i   => clk_i,
---          snk_i   => swc_snk_i(i),
---          snk_o   => swc_snk_o(i),
---          src_o	=> tagger_src_out(i),
---          src_i   => tagger_src_in(i));
---    end generate;
---
---
---
---	 
---	U_junction : wrsw_hsr_junction
---		port map(
---			rst_n_i			=> rst_n_i,
---			clk_i				=> clk_i,
---			ep_src_o			=> ep_src_o,
---			ep_src_i			=> ep_src_i,
---			tagger_snk_i 	=> tagger_src_out,
---			tagger_snk_o 	=> tagger_src_in,
---			fwd_snk_i(0) 	=> c_dummy_snk_in,
---			fwd_snk_i(1)	=> c_dummy_snk_in,
---			fwd_snk_o		=> open);
---			
---
---	-- DEBUG --
-----	cs_icon : chipscope_icon
-----	port map(
-----		CONTROL0	=> CONTROL0
-----	);
-----	cs_ila : chipscope_ila
-----	port map(
-----		CLK		=> clk_i,
-----		CONTROL	=> CONTROL0,
-----		TRIG0		=> TRIG0,
-----		TRIG1		=> TRIG1,
-----		TRIG2		=> TRIG2,
-----		TRIG3		=> TRIG3
-----	);
-----	
-----trig0(1 downto 0) <= ep_snk_i(0).adr;
-----trig0(17 downto 2) <= ep_snk_i(0).dat;
-----trig0(18) <= ep_snk_i(0).cyc;
-----trig0(19) <= ep_snk_i(0).stb;
-----
-----trig1(1 downto 0) <= ep_snk_i(1).adr;
-----trig1(17 downto 2) <= ep_snk_i(1).dat;
-----trig1(18) <= ep_snk_i(1).cyc;
-----trig1(19) <= ep_snk_i(1).stb;
+--trig1(1 downto 0) <= ep_snk_i(1).adr;
+--trig1(17 downto 2) <= ep_snk_i(1).dat;
+--trig1(18) <= ep_snk_i(1).cyc;
+--trig1(19) <= ep_snk_i(1).stb;
 
 end behavioral;
