@@ -43,6 +43,7 @@ use ieee.math_real.log2;
 library work;
 use work.swc_swcore_pkg.all;
 use work.wr_fabric_pkg.all;
+use work.endpoint_private_pkg.all;
 use work.wrsw_shared_types_pkg.all;
 use work.mpm_pkg.all;
 use work.wrsw_hsr_lre_pkg.all;
@@ -122,9 +123,9 @@ architecture behavioral of xwrsw_hsr_lre is
   signal dummy_snk_out : t_wrf_sink_out_array(g_num_ports-1 downto 0);
   signal dummy_src_out : t_wrf_source_out_array(g_num_ports-1 downto 0);
   
-
-
-  
+  signal fwd_fab		  : t_ep_internal_fabric_array(1 downto 0);
+  signal fwd_dreq	     : std_logic_vector(1 downto 0);
+ 
   signal tagger_src_out	: t_wrf_source_out_array(g_num_ports-1 downto 0);
   signal tagger_src_in	: t_wrf_source_in_array(g_num_ports-1 downto 0);
   signal tagger_snk_out	: t_wrf_sink_out_array(g_num_ports-1 downto 0);
@@ -204,6 +205,47 @@ architecture behavioral of xwrsw_hsr_lre is
     end generate;
 
 
+---- While debugging we cannot have these modules created via a generate: ---- 
+--  GEN_FWD: for I in 0 to 1 generate
+--  
+--	U_FWD : xhsr_fwd
+--		port map(
+--			rst_n_i => rst_n_i,
+--			clk_i => clk_i,
+--			snk_i => ep_snk_i(i),
+--			snk_o => ep_snk_o(i),
+--			src_o => swc_src_o(i),
+--			src_i => swc_src_i(i),
+--			fwd_dreq_i => fwd_dreq(i),
+--			fwd_fab_o => fwd_fab(i)
+--		);
+--  
+--  end generate;
+-------------------------------------------------------------------------------
+
+	U_FWD0 : xhsr_fwd
+		port map(
+			rst_n_i => rst_n_i,
+			clk_i => clk_i,
+			snk_i => ep_snk_i(0),
+			snk_o => ep_snk_o(0),
+			src_o => swc_src_o(0),
+			src_i => swc_src_i(0),
+			fwd_dreq_i => fwd_dreq(0),
+			fwd_fab_o => fwd_fab(0)
+		);
+
+	U_FWD1 : xhsr_fwd_debug
+		port map(
+			rst_n_i => rst_n_i,
+			clk_i => clk_i,
+			snk_i => ep_snk_i(1),
+			snk_o => ep_snk_o(1),
+			src_o => swc_src_o(1),
+			src_i => swc_src_i(1),
+			fwd_dreq_i => fwd_dreq(1),
+			fwd_fab_o => fwd_fab(1)
+		);
 
 	 
 	U_junction : wrsw_hsr_junction
@@ -215,9 +257,8 @@ architecture behavioral of xwrsw_hsr_lre is
 			ep_src_i			=> ep_src_i,
 			tagger_snk_i 	=> tagger_src_out,
 			tagger_snk_o 	=> tagger_src_in,
-			fwd_snk_i(0) 	=> c_dummy_snk_in,
-			fwd_snk_i(1)	=> c_dummy_snk_in,
-			fwd_snk_o		=> open);
+			fwd_snk_fab_i 	=> fwd_fab,
+			fwd_snk_dreq_o	=> fwd_dreq);
 			
 
 	-- DEBUG --

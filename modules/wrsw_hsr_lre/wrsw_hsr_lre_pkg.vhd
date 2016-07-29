@@ -40,8 +40,20 @@ use work.wishbone_pkg.all;
 use work.wrsw_txtsu_pkg.all;
 use work.wrsw_shared_types_pkg.all;
 use work.endpoint_pkg.all;
+use work.endpoint_private_pkg.all;
 
 package wrsw_hsr_lre_pkg is
+
+  type t_ep_internal_fabric_array is array (natural range <>) of t_ep_internal_fabric;
+  
+  constant c_dummy_snk_in_array : t_wrf_sink_in_array (1 downto 0) :=(("XX", "XXXXXXXXXXXXXXXX", '0', '0', '0', "XX"),
+    ("XX", "XXXXXXXXXXXXXXXX", '0', '0', '0', "XX"));
+	 
+  constant c_dummy_src_in_array : t_wrf_source_in_array(1 downto 0) := (('0', '0', '0', '0'),('0', '0', '0', '0'));
+	 
+  type t_wrf_source_out_array_array is array (natural range <>) of t_wrf_source_out_array(1 downto 0);
+  type t_wrf_source_in_array_array is array (natural range <>) of t_wrf_source_in_array(1 downto 0);
+  
 
 
   component xhsr_tagger
@@ -58,6 +70,55 @@ package wrsw_hsr_lre_pkg is
     snk_o 	: out  t_wrf_sink_out;
     src_i 	: in  t_wrf_source_in;
     src_o 	: out  t_wrf_source_out);
+  end component;
+  
+  component xhsr_fwd
+   generic(
+    g_adr_width : integer := 2;
+    g_dat_width : integer :=16;
+    g_size    : integer := 1520; -- things for the fifo
+    g_with_fc : boolean := false -- things for the fifo
+    );
+  port(
+
+    rst_n_i : in  std_logic;
+    clk_i   : in  std_logic;
+
+    snk_i : in  t_wrf_sink_in;
+    snk_o : out  t_wrf_sink_out;
+
+    src_i : in  t_wrf_source_in;
+    src_o : out  t_wrf_source_out;
+    
+	 fwd_dreq_i : in  std_logic;
+    fwd_fab_o : out  t_ep_internal_fabric
+
+    );
+  end component;
+  
+  
+  component xhsr_fwd_debug
+   generic(
+    g_adr_width : integer := 2;
+    g_dat_width : integer :=16;
+    g_size    : integer := 1520; -- things for the fifo
+    g_with_fc : boolean := false -- things for the fifo
+    );
+  port(
+
+    rst_n_i : in  std_logic;
+    clk_i   : in  std_logic;
+
+    snk_i : in  t_wrf_sink_in;
+    snk_o : out  t_wrf_sink_out;
+
+    src_i : in  t_wrf_source_in;
+    src_o : out  t_wrf_source_out;
+    
+	 fwd_dreq_i : in  std_logic;
+    fwd_fab_o : out  t_ep_internal_fabric
+
+    );
   end component;
   
   
@@ -79,8 +140,8 @@ package wrsw_hsr_lre_pkg is
 		tagger_snk_i	: in	t_wrf_sink_in_array(1 downto 0);
 		tagger_snk_o	: out t_wrf_sink_out_array(1 downto 0);
 		
-		fwd_snk_i	: in	t_wrf_sink_in_array(1 downto 0);
-		fwd_snk_o	: out t_wrf_sink_out_array(1 downto 0));
+		fwd_snk_fab_i	: in	t_ep_internal_fabric_array(1 downto 0);
+		fwd_snk_dreq_o	: out std_logic_vector(1 downto 0));
 	end component;
 	
   component wrsw_hsr_arbfromtaggers
@@ -97,6 +158,19 @@ package wrsw_hsr_lre_pkg is
 		-- From hsr taggers
 		tagger_snk_i	: in	t_wrf_sink_in_array(1 downto 0);
 		tagger_snk_o	: out t_wrf_sink_out_array(1 downto 0));
-	end component;	
+	end component;
+	
+  component xhsr_mux
+  port(
+    clk_sys_i   : in  std_logic;
+    rst_n_i     : in  std_logic;
+    --ENDPOINT
+    ep_src_o    : out t_wrf_source_out;
+    ep_src_i    : in  t_wrf_source_in;
+        --Muxed ports
+    mux_snk_o   : out t_wrf_sink_out_array(1 downto 0);
+    mux_snk_i   : in  t_wrf_sink_in_array(1 downto 0)
+    );
+  end component;
 
 end wrsw_hsr_lre_pkg;

@@ -169,16 +169,7 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 	
 	signal	word_count				: std_logic_vector(10 downto 0) := (others => '0');
 	
---	signal tmp_sel0 : std_logic_vector(1 downto 0);
---	signal tmp_dat0 : std_logic_vector(15 downto 0);
---	signal tmp_adr0 : std_logic_vector(1 downto 0);	
-	
---	signal tmp_sel1 : std_logic_vector(1 downto 0);
---	signal tmp_dat1 : std_logic_vector(15 downto 0);
---	signal tmp_adr1 : std_logic_vector(1 downto 0);	
-	
-	
-     
+
   begin 
 
 
@@ -256,11 +247,6 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 	snk_valid(0) <= tagger_snk_i(0).cyc and tagger_snk_i(0).stb and tagger_snk_i(0).we and not stall(0);
 	snk_valid(1) <= tagger_snk_i(1).cyc and tagger_snk_i(1).stb and tagger_snk_i(1).we and not stall(1);
 	
-	
-	-- Too late realization:
-	-- This process can (and should) be simpler if there is one only set of signals that is assigned
-	-- conditionally like this:
-	--   XXX <= YYY(Z) when Z_active = '1' else something_else
 	p_wr_fsm : process(clk_i)
 		variable debug	: boolean := false;
 	begin
@@ -888,7 +874,8 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
   
 	U_master_ep0 : ep_rx_wb_master
 		generic map(
-			g_ignore_ack	=> true)
+			g_ignore_ack	=> true,
+			g_cyc_on_stall => false)
 		port map(
 			clk_sys_i 		=> clk_i,
 			rst_n_i			=> rst_n_i,
@@ -901,7 +888,8 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 	
 	U_master_ep1 : ep_rx_wb_master
 		generic map(
-			g_ignore_ack	=> true)
+			g_ignore_ack	=> true,
+			g_cyc_on_stall => false)
 		port map(
 			clk_sys_i 		=> clk_i,
 			rst_n_i			=> rst_n_i,
@@ -918,19 +906,19 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 --	tagger_snk_o <= ep_src_i;
 	
 	-- DEBUG --
-	cs_icon : chipscope_icon
-	port map(
-		CONTROL0	=> CONTROL0
-	);
-	cs_ila : chipscope_ila
-	port map(
-		CLK		=> clk_i,
-		CONTROL	=> CONTROL0,
-		TRIG0		=> TRIG0,
-		TRIG1		=> TRIG1,
-		TRIG2		=> TRIG2,
-		TRIG3		=> TRIG3
-	);
+--	cs_icon : chipscope_icon
+--	port map(
+--		CONTROL0	=> CONTROL0
+--	);
+--	cs_ila : chipscope_ila
+--	port map(
+--		CLK		=> clk_i,
+--		CONTROL	=> CONTROL0,
+--		TRIG0		=> TRIG0,
+--		TRIG1		=> TRIG1,
+--		TRIG2		=> TRIG2,
+--		TRIG3		=> TRIG3
+--	);
 ----	
 --	trig0(15 downto 0)	<= tagger_snk_i(0).dat;
 --	trig0(16)				<= tagger_snk_i(0).cyc;
@@ -1183,7 +1171,7 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 	trig0(30)         <= tagger_snk_i(1).cyc;
 --	
 	trig0(1 downto 0) <= sof;
-	trig0(3 downto 2) <= eof;
+	trig0(3 downto 2) <= snk_dreq;--eof;
 	
 	trig1(15 downto 0)	<= tagger_snk_i(0).dat;
 	trig1(31 downto 16)  <= tagger_snk_i(1).dat;
