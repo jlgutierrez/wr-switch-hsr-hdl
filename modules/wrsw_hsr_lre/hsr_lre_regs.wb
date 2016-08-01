@@ -1,0 +1,173 @@
+
+peripheral {
+
+	name = "WR Switch HSR LRE registers";
+	description = "HSR LRE registers";
+	hdl_entity = "hsr_lre_regs";
+	prefix = "lre";
+	
+	
+-- LRE Control register
+	reg{
+		name = "LRE Control Register";
+		prefix = "LCR";
+		description = "General LRE control register";
+		
+			field{
+				name = "LRE reset";
+				description = "Active low";
+				prefix = "RST_N";
+				access_bus = READ_WRITE;
+				access_dev = READ_ONLY;
+				type = MONOSTABLE;
+			};
+		
+			field{
+				name = "LRE enable";
+				description = "1 : enable\n0 : disable";
+				prefix = "EN";
+				access_bus = READ_WRITE;
+				access_dev = READ_ONLY;
+				type = BIT;
+			};
+			
+			field{
+				name = "HSR / PRP mode";
+				description = "0x1 : HSR mode X\n0x2 : PRP mode X";
+				prefix = "MODE";
+				access_bus = READ_WRITE;
+				access_dev = READ_ONLY;
+				type = SLV;
+				size = 4;
+				
+			};
+			
+			field{
+				name = "HSR Path";
+				description = "";
+				prefix = "HSR_PATH";
+				access_bus = READ_WRITE;
+				access_dev = READ_ONLY;
+				type = SLV;
+				size = 4;
+			};
+			
+			
+	};
+	
+	reg {
+		name = "LRE MAC address high part register";
+		prefix = "MACH";
+		description = "Register containing bits [47:32] of the LRE MAC address";
+
+		field {
+			name = "MAC Address";
+			description = "MAC Address bits [47:32]";
+			type = SLV;
+			size = 16;
+			access_bus = READ_WRITE;
+			access_dev = READ_ONLY;
+		 };
+	};
+	
+	reg {
+		name = "Endpoint MAC address low part register";
+		description = "Register containing bits [31:0] of the endpoint's MAC address";
+		prefix = "MACL";
+
+		field {
+			name = "MAC Address";
+			description = "MAC Address bits [31:0]";
+			type = SLV;
+			size = 32;
+			access_bus = READ_WRITE;
+			access_dev = READ_ONLY;
+		 };
+	};
+	
+	reg{
+		name = "Ep0 forwarded frames";
+		description = "Number of frames forwarded from ep0 to ep1";
+		prefix = "FWD_EP0";
+		
+		field{
+			name = "Fwd frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+	
+	reg{
+		name = "Ep1 forwarded frames";
+		description = "Number of frames forwarded from ep1 to ep0";
+		prefix = "FWD_EP1";
+		
+		field{
+			name = "Fwd frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};	
+
+	reg{
+		name = "Ep0 dropped frames";
+		description = "Number of dropped frames arriving at ep0";
+		prefix = "DISC_EP0";
+		
+		field{
+			name = "dropped frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+	
+	reg{
+		name = "Ep1 dropped frames";
+		description = "Number of dropped frames arriving at ep1";
+		prefix = "DISC_EP1";
+		
+		field{
+			name = "dropped frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+	
+	reg{
+		name = "Ep0 accepted frames";
+		description = "Number of accepted frames arriving at ep0";
+		prefix = "ACC_EP0";
+		
+		field{
+			name = "Accepted frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+	
+	reg{
+		name = "Ep1 accepted frames";
+		description = "Number of accepted frames arriving at ep1";
+		prefix = "ACC_EP1";
+		
+		field{
+			name = "Accepted frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+
+
+};

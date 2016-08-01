@@ -43,10 +43,12 @@ use ieee.math_real.log2;
 library work;
 use work.swc_swcore_pkg.all;
 use work.wr_fabric_pkg.all;
+use work.wishbone_pkg.all;
 use work.endpoint_private_pkg.all;
 use work.wrsw_shared_types_pkg.all;
 use work.mpm_pkg.all;
 use work.wrsw_hsr_lre_pkg.all;
+use work.lre_wbgen2_pkg.all;
 
 entity xwrsw_hsr_lre is
 
@@ -60,8 +62,6 @@ entity xwrsw_hsr_lre is
     rst_n_i : in  std_logic;
     clk_i   : in  std_logic;
 	 
-	 link_ok_i : std_logic_vector(g_num_ports-1 downto 0);
-
 -------------------------------------------------------------------------------
 -- pWB  : input (comes from the Endpoint)
 -------------------------------------------------------------------------------
@@ -89,8 +89,17 @@ entity xwrsw_hsr_lre is
 -------------------------------------------------------------------------------  
 
     swc_src_i : in  t_wrf_source_in_array(g_num_ports-1 downto 0);  -- rx
-    swc_snk_i : in  t_wrf_sink_in_array(g_num_ports-1 downto 0)     -- tx
-   
+    swc_snk_i : in  t_wrf_sink_in_array(g_num_ports-1 downto 0);     -- tx
+	 
+	 link_ok_i : std_logic_vector(g_num_ports-1 downto 0);
+	 
+	 
+-------------------------------------------------------------------------------   
+-- Wishbone bus
+-------------------------------------------------------------------------------
+
+    wb_i     : in  t_wishbone_slave_in;
+	 wb_o     : out t_wishbone_slave_out
 
     );
 end xwrsw_hsr_lre;
@@ -130,6 +139,13 @@ architecture behavioral of xwrsw_hsr_lre is
   signal tagger_src_in	: t_wrf_source_in_array(g_num_ports-1 downto 0);
   signal tagger_snk_out	: t_wrf_sink_out_array(g_num_ports-1 downto 0);
   signal tagger_snk_in	: t_wrf_sink_in_array(g_num_ports-1 downto 0);
+  
+  signal extended_ADDR : std_logic_vector(c_wishbone_address_width-1 downto 0);
+  signal wb_in         : t_wishbone_slave_in;
+  signal wb_out        : t_wishbone_slave_out;
+  signal regs_towb     : t_lre_in_registers;
+  signal regs_fromwb   : t_lre_out_registers;
+
 
   begin --rtl
 
@@ -259,6 +275,49 @@ architecture behavioral of xwrsw_hsr_lre is
 			tagger_snk_o 	=> tagger_src_in,
 			fwd_snk_fab_i 	=> fwd_fab,
 			fwd_snk_dreq_o	=> fwd_dreq);
+			
+  extended_ADDR <= std_logic_vector(resize(unsigned(wb_i.adr), c_wishbone_address_width));
+
+  U_Slave_adapter : wb_slave_adapter
+    generic map (
+      g_master_use_struct  => true,
+      g_master_mode        => CLASSIC,
+      g_master_granularity => WORD,
+      g_slave_use_struct   => false,
+      g_slave_mode         => PIPELINED,
+      g_slave_granularity  => BYTE)
+    port map (
+      clk_sys_i  => clk_i,
+      rst_n_i    => rst_n_i,
+      sl_adr_i   => extended_ADDR,
+      sl_dat_i   => wb_i.dat,
+      sl_sel_i   => wb_i.sel,
+      sl_cyc_i   => wb_i.cyc,
+      sl_stb_i   => wb_i.stb,
+      sl_we_i    => wb_i.we,
+      sl_dat_o   => wb_o.dat,
+      sl_ack_o   => wb_o.ack,
+      sl_stall_o => wb_o.stall,
+      master_i   => wb_out,
+      master_o   => wb_in);
+		
+ U_wbregs : hsr_lre_regs
+	port map(
+		rst_n_i    => rst_n_i,
+      clk_sys_i  => clk_i,
+      wb_adr_i   => wb_in.adr(3 downto 0),
+      wb_dat_i   => wb_in.dat,
+      wb_dat_o   => wb_out.dat,
+      wb_cyc_i   => wb_in.cyc,
+      wb_sel_i   => wb_in.sel,
+      wb_stb_i   => wb_in.stb,
+      wb_we_i    => wb_in.we,
+      wb_ack_o   => wb_out.ack,
+      wb_stall_o => open,
+
+      regs_o => regs_fromwb,
+      regs_i => regs_towb
+	);
 			
 
 	-- DEBUG --

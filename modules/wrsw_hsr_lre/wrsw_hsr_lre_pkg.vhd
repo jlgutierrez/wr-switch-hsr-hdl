@@ -41,6 +41,7 @@ use work.wrsw_txtsu_pkg.all;
 use work.wrsw_shared_types_pkg.all;
 use work.endpoint_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.lre_wbgen2_pkg.all;
 
 package wrsw_hsr_lre_pkg is
 
@@ -171,6 +172,25 @@ package wrsw_hsr_lre_pkg is
     mux_snk_o   : out t_wrf_sink_out_array(1 downto 0);
     mux_snk_i   : in  t_wrf_sink_in_array(1 downto 0)
     );
+  end component;
+  
+  
+  component hsr_lre_regs
+  port (
+    rst_n_i                                  : in     std_logic;
+    clk_sys_i                                : in     std_logic;
+    wb_adr_i                                 : in     std_logic_vector(3 downto 0);
+    wb_dat_i                                 : in     std_logic_vector(31 downto 0);
+    wb_dat_o                                 : out    std_logic_vector(31 downto 0);
+    wb_cyc_i                                 : in     std_logic;
+    wb_sel_i                                 : in     std_logic_vector(3 downto 0);
+    wb_stb_i                                 : in     std_logic;
+    wb_we_i                                  : in     std_logic;
+    wb_ack_o                                 : out    std_logic;
+    wb_stall_o                               : out    std_logic;
+    regs_i                                   : in     t_lre_in_registers;
+    regs_o                                   : out    t_lre_out_registers
+  );
   end component;
 
 end wrsw_hsr_lre_pkg;

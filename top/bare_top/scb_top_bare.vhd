@@ -180,7 +180,7 @@ end scb_top_bare;
 architecture rtl of scb_top_bare is
 
   constant c_GW_VERSION    : std_logic_vector(31 downto 0) := x"20_02_14_00"; --DD_MM_YY_VV
-  constant c_NUM_WB_SLAVES : integer := 13;
+  constant c_NUM_WB_SLAVES : integer := 14;
   constant c_NUM_PORTS     : integer := g_num_ports;
   constant c_MAX_PORTS     : integer := 18;
   constant c_NUM_GL_PAUSE  : integer := 2; -- number of output global PAUSE sources for SWcore
@@ -212,11 +212,13 @@ architecture rtl of scb_top_bare is
   constant c_SLAVE_TATSU        : integer := 10;
   constant c_SLAVE_PSTATS       : integer := 11;
   constant c_SLAVE_HWIU         : integer := 12;
-  --constant c_SLAVE_DUMMY        : integer := 13;
+  constant c_SLAVE_LRE			  : integer := 13;
+  --constant c_SLAVE_DUMMY        : integer := 14;
 
   constant c_cnx_base_addr : t_wishbone_address_array(c_NUM_WB_SLAVES-1 downto 0) :=
     (
       --x"00070000",                      -- Dummy counters
+		x"00061000",                      -- LRE
       x"00059000",                      -- HWIU
       x"00058000",                      -- PStats counters
       x"00057000",                      -- TATSU
@@ -234,6 +236,7 @@ architecture rtl of scb_top_bare is
 
   constant c_cnx_base_mask : t_wishbone_address_array(c_NUM_WB_SLAVES-1 downto 0) :=
     (--x"000ff000",
+	  x"000ff000",
      x"000ff000",
      x"000ff000",
      x"000ff000",
@@ -241,7 +244,7 @@ architecture rtl of scb_top_bare is
      x"000ff000",
      x"000ff000",
      x"000ff000",
-     x"000f0000",
+     x"000ff000",
      x"000ff000",
      x"000ff000",
      x"000f0000",
@@ -797,7 +800,10 @@ begin
       swc_snk_o   => swc_snk_out(2 downto 1), -- tx
       swc_snk_i   => swc_snk_in(2 downto 1),  -- tx
       swc_src_i   => swc_src_in(2 downto 1),  -- rx
-      swc_src_o   => swc_src_out(2 downto 1)  -- rx
+      swc_src_o   => swc_src_out(2 downto 1),  -- rx
+		
+		wb_i 			=> cnx_master_out(c_SLAVE_LRE),
+		wb_o			=> cnx_master_in(c_SLAVE_LRE)
     );	 
 
     gen_terminate_unused_eps : for i in c_NUM_PORTS to c_MAX_PORTS-1 generate
