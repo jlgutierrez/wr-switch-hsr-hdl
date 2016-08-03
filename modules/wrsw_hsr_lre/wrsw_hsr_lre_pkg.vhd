@@ -64,12 +64,29 @@ package wrsw_hsr_lre_pkg is
 	  );
     port (
 
-    rst_n_i : in  std_logic;
+    rst_n_i     : in  std_logic;
     clk_i	: in  std_logic;
+    req_tag     : out std_logic;
+    seq_n       : in std_logic_vector (15 downto 0);
+    seq_valid   : in std_logic;
     snk_i	: in  t_wrf_sink_in;
     snk_o 	: out  t_wrf_sink_out;
     src_i 	: in  t_wrf_source_in;
     src_o 	: out  t_wrf_source_out);
+  end component;
+
+  component xhsr_seq
+    generic (
+      g_dat_width : integer :=16);
+    port (
+      rst_n_i : in  std_logic;
+      clk_i	: in  std_logic;
+      request0 : in std_logic;
+      request1 : in std_logic;
+      seq_n0 : out std_logic_vector (15 downto 0);
+      seq_n1 : out std_logic_vector (15 downto 0);
+      valid0 : out std_logic;
+      valid1 : out std_logic);
   end component;
   
   component xhsr_fwd

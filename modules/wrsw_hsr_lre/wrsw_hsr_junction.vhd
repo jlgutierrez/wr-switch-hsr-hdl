@@ -191,19 +191,19 @@ architecture behavioral of wrsw_hsr_junction is
 	fwd_src_in(1) <= mux_ep_src_in(0)(1);
 	fwd_src_in(0) <= mux_ep_src_in(1)(1);
 --	
-	cs_icon : chipscope_icon
-	port map(
-		CONTROL0	=> CONTROL0
-	);
-	cs_ila : chipscope_ila
-	port map(
-		CLK		=> clk_i,
-		CONTROL	=> CONTROL0,
-		TRIG0		=> TRIG0,
-		TRIG1		=> TRIG1,
-		TRIG2		=> TRIG2,
-		TRIG3		=> TRIG3
-	);
+	--cs_icon : chipscope_icon
+	--port map(
+	--	CONTROL0	=> CONTROL0
+	--);
+	--cs_ila : chipscope_ila
+	--port map(
+	--	CLK		=> clk_i,
+	--	CONTROL	=> CONTROL0,
+	--	TRIG0		=> TRIG0,
+	--	TRIG1		=> TRIG1,
+	--	TRIG2		=> TRIG2,
+	--	TRIG3		=> TRIG3
+	--);
 	
 	trig0(15 downto 0) <= ep_src_o_int(0).dat; -- ! changed
 	trig0(31 downto 16) <= arb_src_out(1).dat;

@@ -131,6 +131,12 @@ architecture behavioral of xwrsw_hsr_lre is
   signal tagger_snk_out	: t_wrf_sink_out_array(g_num_ports-1 downto 0);
   signal tagger_snk_in	: t_wrf_sink_in_array(g_num_ports-1 downto 0);
 
+  -- taggers <-> sequencer
+  signal hsr_seq_query : std_logic_vector(1 downto 0);
+  type t_array_seq_number is array (0 to 1) of std_logic_vector(15 downto 0); 
+  signal seq_number : t_array_seq_number; 
+  signal hsr_seq_valid : std_logic_vector(1 downto 0);
+
   begin --rtl
 
 ---- Uncomment this (and comment the rest all the way down) ---
@@ -191,9 +197,19 @@ architecture behavioral of xwrsw_hsr_lre is
 		swc_src_o(g_num_ports-1 downto 0) <= ep_snk_i(g_num_ports-1 downto 0);
 		
 
+  U_seq : xhsr_seq
+    port map (
+      rst_n_i => rst_n_i,
+      clk_i   => clk_i,
+      request0 => hsr_seq_query(0),
+      request1 => hsr_seq_query(1),
+      seq_n0 => seq_number(0),
+      seq_n1 => seq_number(1),
+      valid0 => hsr_seq_valid(0),
+      valid1 => hsr_seq_valid(1)
+    );
+
   GEN_TAGGERS: for I in 0 to 1 generate
-      -- Inserts HSR tag
-		-- Not implemented yet.
       U_XHSR_TAGGER: xhsr_tagger
         port map (
           rst_n_i => rst_n_i,
@@ -201,9 +217,12 @@ architecture behavioral of xwrsw_hsr_lre is
           snk_i   => swc_snk_i(i),
           snk_o   => swc_snk_o(i),
           src_o	=> tagger_src_out(i),
-          src_i   => tagger_src_in(i));
+          src_i   => tagger_src_in(i),
+          req_tag  => hsr_seq_query(i),
+	  seq_n => seq_number(i),
+	  seq_valid => hsr_seq_valid(i)
+	);
     end generate;
-
 
 ---- While debugging we cannot have these modules created via a generate: ---- 
 --  GEN_FWD: for I in 0 to 1 generate

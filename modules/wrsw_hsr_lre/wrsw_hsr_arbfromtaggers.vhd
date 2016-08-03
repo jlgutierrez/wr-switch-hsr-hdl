@@ -906,19 +906,19 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 --	tagger_snk_o <= ep_src_i;
 	
 	-- DEBUG --
---	cs_icon : chipscope_icon
---	port map(
---		CONTROL0	=> CONTROL0
---	);
---	cs_ila : chipscope_ila
---	port map(
---		CLK		=> clk_i,
---		CONTROL	=> CONTROL0,
---		TRIG0		=> TRIG0,
---		TRIG1		=> TRIG1,
---		TRIG2		=> TRIG2,
---		TRIG3		=> TRIG3
---	);
+	cs_icon : chipscope_icon
+	port map(
+		CONTROL0	=> CONTROL0
+	);
+	cs_ila : chipscope_ila
+	port map(
+		CLK		=> clk_i,
+		CONTROL	=> CONTROL0,
+		TRIG0		=> TRIG0,
+		TRIG1		=> TRIG1,
+		TRIG2		=> TRIG2,
+		TRIG3		=> TRIG3
+	);
 ----	
 --	trig0(15 downto 0)	<= tagger_snk_i(0).dat;
 --	trig0(16)				<= tagger_snk_i(0).cyc;
