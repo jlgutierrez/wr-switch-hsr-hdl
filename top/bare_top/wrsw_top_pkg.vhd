@@ -481,10 +481,11 @@ package wrsw_top_pkg is
 		swc_snk_o : out t_wrf_sink_out_array(g_num_ports-1 downto 0);
 		swc_src_i : in  t_wrf_source_in_array(g_num_ports-1 downto 0);
 		swc_src_o : out t_wrf_source_out_array(g_num_ports-1 downto 0);
-
-		wb_i     : in  t_wishbone_slave_in;
-	   wb_o     : out t_wishbone_slave_out
-		);   		
+		
+		wb_i : in  t_wishbone_slave_in;
+      wb_o : out t_wishbone_slave_out
+		
+		);
   end component;  
 
 

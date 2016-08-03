@@ -213,12 +213,12 @@ architecture rtl of scb_top_bare is
   constant c_SLAVE_PSTATS       : integer := 11;
   constant c_SLAVE_HWIU         : integer := 12;
   constant c_SLAVE_LRE			  : integer := 13;
-  --constant c_SLAVE_DUMMY        : integer := 14;
+  --constant c_SLAVE_DUMMY        : integer := 13;
 
   constant c_cnx_base_addr : t_wishbone_address_array(c_NUM_WB_SLAVES-1 downto 0) :=
     (
       --x"00070000",                      -- Dummy counters
-		x"00061000",                      -- LRE
+		x"00061000",
       x"00059000",                      -- HWIU
       x"00058000",                      -- PStats counters
       x"00057000",                      -- TATSU
@@ -802,8 +802,8 @@ begin
       swc_src_i   => swc_src_in(2 downto 1),  -- rx
       swc_src_o   => swc_src_out(2 downto 1),  -- rx
 		
-		wb_i 			=> cnx_master_out(c_SLAVE_LRE),
-		wb_o			=> cnx_master_in(c_SLAVE_LRE)
+		wb_i        => cnx_master_out(c_SLAVE_LRE),
+		wb_o        => cnx_master_in(c_SLAVE_LRE)
     );	 
 
     gen_terminate_unused_eps : for i in c_NUM_PORTS to c_MAX_PORTS-1 generate
