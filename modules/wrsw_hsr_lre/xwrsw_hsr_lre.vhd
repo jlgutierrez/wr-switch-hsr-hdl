@@ -131,6 +131,9 @@ architecture behavioral of xwrsw_hsr_lre is
   signal tagger_snk_out	: t_wrf_sink_out_array(g_num_ports-1 downto 0);
   signal tagger_snk_in	: t_wrf_sink_in_array(g_num_ports-1 downto 0);
 
+  signal fwd_src_out	: t_wrf_source_out_array(g_num_ports-1 downto 0);
+  signal fwd_src_in	: t_wrf_source_in_array(g_num_ports-1 downto 0);
+
   -- taggers <-> sequencer
   signal hsr_seq_query : std_logic_vector(1 downto 0);
   type t_array_seq_number is array (0 to 1) of std_logic_vector(15 downto 0); 
@@ -193,9 +196,20 @@ architecture behavioral of xwrsw_hsr_lre is
 		-- HSR-PORT INCOMING TRAFFIC BYPASSED
 		-- AS THERE IS NO LRE FOR CHECKING DUPLICATES YET:
 		
-		ep_snk_o(g_num_ports-1 downto 0) <= swc_src_i(g_num_ports-1 downto 0);
-		swc_src_o(g_num_ports-1 downto 0) <= ep_snk_i(g_num_ports-1 downto 0);
+		--ep_snk_o(g_num_ports-1 downto 0) <= swc_src_i(g_num_ports-1 downto 0);
+		--swc_src_o(g_num_ports-1 downto 0) <= ep_snk_i(g_num_ports-1 downto 0);
 		
+
+  GEN_UNTAGGERS: for I in 0 to 1 generate
+    U_XHSR_UNTAGGER: xhsr_untagger
+      port map (
+        rst_n_i => rst_n_i,
+        clk_i   => clk_i,
+        snk_i   => fwd_src_out(i),
+        snk_o   => fwd_src_in(i),
+        src_o	=> swc_src_o(i),
+        src_i   => swc_src_i(i));
+    end generate;
 
   U_seq : xhsr_seq
     port map (
@@ -248,8 +262,8 @@ architecture behavioral of xwrsw_hsr_lre is
 			clk_i => clk_i,
 			snk_i => ep_snk_i(0),
 			snk_o => ep_snk_o(0),
-			src_o => swc_src_o(0),
-			src_i => swc_src_i(0),
+			src_o => fwd_src_out(0),
+			src_i => fwd_src_in(0),
 			fwd_dreq_i => fwd_dreq(0),
 			fwd_fab_o => fwd_fab(0)
 		);
@@ -260,8 +274,8 @@ architecture behavioral of xwrsw_hsr_lre is
 			clk_i => clk_i,
 			snk_i => ep_snk_i(1),
 			snk_o => ep_snk_o(1),
-			src_o => swc_src_o(1),
-			src_i => swc_src_i(1),
+			src_o => fwd_src_out(1),
+			src_i => fwd_src_in(1),
 			fwd_dreq_i => fwd_dreq(1),
 			fwd_fab_o => fwd_fab(1)
 		);

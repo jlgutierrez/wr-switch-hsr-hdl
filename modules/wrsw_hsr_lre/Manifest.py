@@ -7,4 +7,5 @@ files = [
 "wrsw_hsr_arbfromtaggers.vhd",
 "xhsr_fwd.vhd",
 "xhsr_mux.vhd",
-"xhsr_seq.vhd"]
+"xhsr_seq.vhd",
+"xhsr_untagger.vhd"]
