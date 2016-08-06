@@ -81,17 +81,21 @@ end xhsr_untagger;
 
 architecture behavoural of xhsr_untagger is
 
-type t_state is (WAIT_FRAME, 
-					DATA,
-					REMOVE_TAG,
-					BYPASS_FRAME);
-
-  -- new crap
-  signal hdr_offset : std_logic_vector(9 downto 0);
-  signal at_ethertype     : std_logic;
+  signal hdr_offset : std_logic_vector(10 downto 0);
   
-  -- general signals
-  signal state   : t_state;
+  -- fifo constants
+  constant c_drop_threshold    : integer := g_size - 2;
+  constant c_release_threshold : integer := g_size * 7 / 8;
+  
+  -- fifo signals  
+  signal q_in, q_out             : std_logic_vector(25 downto 0);
+  signal q_usedw                 : std_logic_vector(f_log2_size(g_size)-1 downto 0);
+  signal q_empty                 : std_logic;
+  signal q_reset                 : std_logic;
+  signal q_rd                    : std_logic;
+  signal q_drop                  : std_logic;
+  signal q_in_valid, q_out_valid : std_logic;
+  signal q_aempty, q_afull       : std_logic;
 
   component chipscope_icon
     port (
@@ -117,7 +121,7 @@ type t_state is (WAIT_FRAME,
   signal sof_p1, eof_p1, abort_p1, error_p1 : std_logic;
   signal snk_cyc_d0                         : std_logic;
   signal snk_valid			    : std_logic := '0';
-  
+  signal q_rd_p1			    : std_logic;
   type t_write_state is(WAIT_FRAME, DATA);
   
   -- DEBUG --
@@ -129,7 +133,27 @@ type t_state is (WAIT_FRAME,
   
   begin  -- behavioral
   
-  at_ethertype <= hdr_offset(7) and snk_i.stb;
+  BUF_FIFO : generic_sync_fifo
+    generic map (
+      g_data_width => 26, -- adr, dat, cyc, stb, we, sel, sof, eof
+      g_size       => g_size,
+      g_with_almost_empty => true,
+      g_with_almost_full  => true,
+      g_almost_empty_threshold  => c_release_threshold,
+      g_almost_full_threshold   => c_drop_threshold,
+      g_with_count              => g_with_fc)
+    port map (
+      rst_n_i        => rst_n_i,
+      clk_i          => clk_i,
+      d_i            => q_in,
+      we_i           => q_in_valid,
+      q_o            => q_out,
+      rd_i           => q_rd,
+      empty_o        => q_empty,
+      full_o         => open,
+      almost_empty_o => q_aempty,
+      almost_full_o  => q_afull,
+      count_o        => q_usedw);
 
   p_detect_frame : process(clk_i)
   begin
@@ -142,160 +166,102 @@ type t_state is (WAIT_FRAME,
     end if;
   end process;
 
-  -- convert wb to fab
   sof_p1 <= not snk_cyc_d0 and snk_i.cyc;
   eof_p1 <= snk_cyc_d0 and not snk_i.cyc;
   
-  --snk_valid <= snk_i.cyc and snk_i.stb and snk_i.we and not src_i.stall;
-  snk_valid <= snk_i.cyc and snk_i.stb and snk_i.we;
+  snk_valid <= snk_i.cyc and snk_i.stb and snk_i.we and not src_i.stall;
+  q_rd_p1 <= not src_i.stall and not q_empty;
 
 p_untag : process(clk_i)
+	variable is_hsr : std_logic := '0';
   begin
     if rising_edge(clk_i) then
       if rst_n_i = '0' then
         hdr_offset(hdr_offset'left downto 1) <= (others => '0');
         hdr_offset(0)    <= '1';
-
-        state            <= WAIT_FRAME;   
-        debug_state <= "000";     
+        q_rd <= '0';
+        is_hsr := '0';
       else
-           case state is
-            when WAIT_FRAME =>
-              debug_state <= "001";
-              
-              if(sof_p1 = '1') then
-                hdr_offset(hdr_offset'left downto 1) <= (others => '0');
-                hdr_offset(0)                        <= '1';
-                state                                <= DATA;
-              end if;
-              
-              src_o.adr <= snk_i.adr;
-			  src_o.dat <= snk_i.dat;
-			  src_o.cyc <= snk_i.cyc;
-			  src_o.stb <= snk_i.stb;
-			  src_o.we <= snk_i.we;
-			  src_o.sel <= snk_i.sel;
+         q_rd <= q_rd_p1;
 
-            when DATA =>
-			  debug_state <= "010";
-
-              if(at_ethertype = '1') then
-
-                if(snk_i.dat = x"892f") then  -- got a HSR tagged frame, and it should be removed... (3 cycles)
-                  -- we have already removed these data (tag) (1st removed)
-                  src_o.adr <= snk_i.adr;
-				  src_o.dat <= snk_i.dat;
-				  src_o.cyc <= snk_i.cyc;
-				  src_o.stb <= '0';
-				  src_o.we <= snk_i.we;
-				  src_o.sel <= snk_i.sel;
-				  
-				  state <= REMOVE_TAG;
-                else -- just bypass frame 
-				  src_o.adr <= snk_i.adr;
-				  src_o.dat <= snk_i.dat;
-				  src_o.cyc <= snk_i.cyc;
-				  src_o.stb <= snk_i.stb;
-				  src_o.we <= snk_i.we;
-				  src_o.sel <= snk_i.sel;
-				  
-				  state <= BYPASS_FRAME;
-                end if;
-              else
-                  src_o.adr <= snk_i.adr;
-				  src_o.dat <= snk_i.dat;
-				  src_o.cyc <= snk_i.cyc;
-				  src_o.stb <= snk_i.stb;
-				  src_o.we <= snk_i.we;
-				  src_o.sel <= snk_i.sel;
-              end if;
-
-              if(snk_i.stb = '1') then
-                hdr_offset <= hdr_offset(hdr_offset'left-1 downto 0) & '0';
-              end if;
-
-			when BYPASS_FRAME =>
-				debug_state <= "011";
-				src_o.adr <= snk_i.adr;
-				src_o.dat <= snk_i.dat;
-				src_o.cyc <= snk_i.cyc;
-				src_o.stb <= snk_i.stb;
-				src_o.we <= snk_i.we;
-				src_o.sel <= snk_i.sel;
-				 
-				if (eof_p1 = '1') then
-				   state <= WAIT_FRAME;
-				end if;
-				
-				if (snk_i.stb = '1') then
-				  hdr_offset <= hdr_offset(hdr_offset'left-1 downto 0) & '0';
-				end if;
-			
-            when REMOVE_TAG =>
-              debug_state <= "100";
-				
-				if(hdr_offset(8) = '1') then -- 2nd removed
-				  src_o.adr <= snk_i.adr;
-				  src_o.dat <= snk_i.dat;
-				  src_o.cyc <= snk_i.cyc;
-				  src_o.stb <= '0';
-				  src_o.we <= snk_i.we;
-				  src_o.sel <= snk_i.sel;
-				end if;
-				
-				if(hdr_offset(9) = '1') then -- 3rd removed
-				  src_o.adr <= snk_i.adr;
-				  src_o.dat <= snk_i.dat;
-				  src_o.cyc <= snk_i.cyc;
-				  src_o.stb <= '0';
-				  src_o.we <= snk_i.we;
-				  src_o.sel <= snk_i.sel;
-				  
-				  state <= BYPASS_FRAME; -- bypass the rest of the frame
-
-				end if;
-				
-				if (snk_i.stb = '1') then
-				  hdr_offset <= hdr_offset(hdr_offset'left-1 downto 0) & '0';
-				end if;              
-          end case;
+         if(q_out(23) = '1') then -- fifo's sof
+             hdr_offset(hdr_offset'left downto 1) <= (others => '0');
+             hdr_offset(0)                        <= '1';
+             is_hsr := '0';
+         end if;
+         
+         if q_rd = '1' then
+         
+            src_o.adr <= q_out(1 downto 0);
+            src_o.dat <= q_out(17 downto 2);
+            src_o.cyc <= q_out(18);
+            src_o.stb <= q_out(19);
+            src_o.we <= q_out(20);
+            src_o.sel <= q_out(22 downto 21);
+            
+            if hdr_offset(7) = '1' and q_out(17 downto 2) = x"892f" then
+		       is_hsr := '1';
+            end if;
+            
+            if ((hdr_offset(7) = '1' or hdr_offset(8) = '1' or hdr_offset(9) = '1') and is_hsr = '1') then
+               src_o.stb <= '0';
+            end if;
+            
+            if q_out(19) = '1' then -- fifo's stb
+               hdr_offset <= hdr_offset(hdr_offset'left-1 downto 0) & '0';
+            end if;
+            
+          else 
+             src_o.stb <= '0';
+          end if;
       end if;
     end if;
   end process;
 
-  --snk_o <= src_i;
+  snk_o.ack <= q_out(25);
+  --snk_o.stall <= src_i.stall;
 
-p_gen_ack : process(clk_i)
-  begin
-    if rising_edge(clk_i) then
-      --snk_o.ack <= '1'; -- shitty hack (TB FIXED)
-	snk_o.ack <= snk_valid;
-    end if;
-  end process;
+   -- fifo --  
+   q_in_valid <= snk_cyc_d0 or snk_i.cyc;
+   q_in <= snk_valid & eof_p1 & sof_p1 & snk_i.sel & snk_i.we & snk_i.stb & snk_i.cyc & snk_i.dat & snk_i.adr;
   
     -- DEBUG --	
---   cs_icon : chipscope_icon
---   port map(
---      CONTROL0	=> CONTROL0
---   );
---   cs_ila : chipscope_ila
---   port map(
---      CLK	=> clk_i,
---      CONTROL	=> CONTROL0,
---      TRIG0	=> TRIG0,
---      TRIG1	=> TRIG1,
---      TRIG2	=> TRIG2,
---      TRIG3	=> TRIG3
---   );
+   --cs_icon : chipscope_icon
+   --port map(
+      --CONTROL0	=> CONTROL0
+   --);
+   --cs_ila : chipscope_ila
+   --port map(
+      --CLK	=> clk_i,
+      --CONTROL	=> CONTROL0,
+      --TRIG0	=> TRIG0,
+      --TRIG1	=> TRIG1,
+      --TRIG2	=> TRIG2,
+      --TRIG3	=> TRIG3
+   --);
 
-trig0(2 downto 0) <= debug_state;
+--trig0(0) <= is_hsr;
 trig0(3) <= sof_p1;
 trig0(4) <= eof_p1;
 trig0(25 downto 10) <= snk_i.dat;
 trig0(26) <= snk_i.cyc;
 trig0(27) <= snk_i.stb;
+trig0(28) <= src_i.stall;
+trig0(29) <= q_empty;
+trig0(30) <= q_rd;
+trig0(31) <= snk_valid;
 
-trig2(9 downto 0) <= hdr_offset;	
+trig1(1 downto 0) <= q_out(1 downto 0); --adr
+trig1(17 downto 2) <= q_out(17 downto 2); --dat
+trig1(18) <= q_out(18); --cyc
+trig1(19) <= q_out(19); --stb
+trig1(20) <= q_out(20); --we
+trig1(22 downto 21) <= q_out(22 downto 21); --sel
+trig1(23) <= q_out(23); --sof;
+trig1(24) <= q_out(24); --eof;
+trig1(25) <= q_out(25); --snk_valid;
+
+trig2(10 downto 0) <= hdr_offset;	
 
 	
 
