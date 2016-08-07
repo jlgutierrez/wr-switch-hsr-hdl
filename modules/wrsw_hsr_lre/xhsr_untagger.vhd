@@ -184,14 +184,13 @@ p_untag : process(clk_i)
       else
          q_rd <= q_rd_p1;
 
-         if(q_out(23) = '1') then -- fifo's sof
+         if q_rd = '1' then
+         
+			if(q_out(23) = '1') then -- fifo's sof
              hdr_offset(hdr_offset'left downto 1) <= (others => '0');
              hdr_offset(0)                        <= '1';
              is_hsr := '0';
-         end if;
-         
-         if q_rd = '1' then
-         
+			end if;
             src_o.adr <= q_out(1 downto 0);
             src_o.dat <= q_out(17 downto 2);
             src_o.cyc <= q_out(18);
