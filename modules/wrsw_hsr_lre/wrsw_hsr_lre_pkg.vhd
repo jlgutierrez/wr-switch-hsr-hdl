@@ -74,6 +74,25 @@ package wrsw_hsr_lre_pkg is
     src_i 	: in  t_wrf_source_in;
     src_o 	: out  t_wrf_source_out);
   end component;
+  
+  component xhsr_tagger_debug
+    generic (
+	  g_adr_width : integer := 2;
+	  g_dat_width : integer :=16
+	  --g_num_ports : integer
+	  );
+    port (
+
+    rst_n_i     : in  std_logic;
+    clk_i	: in  std_logic;
+    req_tag     : out std_logic;
+    seq_n       : in std_logic_vector (15 downto 0);
+    seq_valid   : in std_logic;
+    snk_i	: in  t_wrf_sink_in;
+    snk_o 	: out  t_wrf_sink_out;
+    src_i 	: in  t_wrf_source_in;
+    src_o 	: out  t_wrf_source_out);
+  end component;
 
   component xhsr_seq
     generic (
@@ -90,6 +109,22 @@ package wrsw_hsr_lre_pkg is
   end component;
 
   component xhsr_untagger
+    generic (
+	  g_adr_width : integer := 2;
+	  g_dat_width : integer :=16
+	  --g_num_ports : integer
+	  );
+    port (
+
+    rst_n_i : in  std_logic;
+    clk_i	: in  std_logic;
+    snk_i	: in  t_wrf_sink_in;
+    snk_o 	: out  t_wrf_sink_out;
+    src_i 	: in  t_wrf_source_in;
+    src_o 	: out  t_wrf_source_out);
+  end component;
+  
+  component xhsr_untagger_debug
     generic (
 	  g_adr_width : integer := 2;
 	  g_dat_width : integer :=16

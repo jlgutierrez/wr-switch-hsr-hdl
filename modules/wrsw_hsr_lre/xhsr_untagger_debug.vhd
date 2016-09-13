@@ -2,7 +2,7 @@
 -- Title      : HSR Link Redundancy Entity - top level
 -- Project    : White Rabbit
 -------------------------------------------------------------------------------
--- File       : xhsr_untagger.vhd
+-- File       : xhsr_untagger_debug.vhd
 -- Author     : José Luis Gutiérrez
 -- Company    : University of Granada 
 -- Department : Computer Architecture and Technology
@@ -51,7 +51,7 @@ use work.endpoint_private_pkg.all;
 
 
 
-entity xhsr_untagger is
+entity xhsr_untagger_debug is
   generic(
     g_adr_width : integer := 2;
     g_dat_width : integer :=16;
@@ -77,9 +77,9 @@ entity xhsr_untagger is
     src_o : out  t_wrf_source_out
 
     );
-end xhsr_untagger;
+end xhsr_untagger_debug;
 
-architecture behavoural of xhsr_untagger is
+architecture behavoural of xhsr_untagger_debug is
 
   signal hdr_offset : std_logic_vector(10 downto 0);
   

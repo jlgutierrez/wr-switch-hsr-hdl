@@ -122,6 +122,7 @@ architecture behavioral of xwrsw_hsr_lre is
   
   signal dummy_snk_out : t_wrf_sink_out_array(g_num_ports-1 downto 0);
   signal dummy_src_out : t_wrf_source_out_array(g_num_ports-1 downto 0);
+  signal dummy_src_in : t_wrf_source_in_array(g_num_ports-1 downto 0);
   
   signal fwd_fab		  : t_ep_internal_fabric_array(1 downto 0);
   signal fwd_dreq	     : std_logic_vector(1 downto 0);
@@ -200,16 +201,58 @@ architecture behavioral of xwrsw_hsr_lre is
 		--swc_src_o(g_num_ports-1 downto 0) <= ep_snk_i(g_num_ports-1 downto 0);
 		
 
-  GEN_UNTAGGERS: for I in 0 to 1 generate
-    U_XHSR_UNTAGGER: xhsr_untagger
+  --GEN_UNTAGGERS: for I in 0 to 1 generate
+    --U_XHSR_UNTAGGER: xhsr_untagger
+      --port map (
+        --rst_n_i => rst_n_i,
+        --clk_i   => clk_i,
+        --snk_i   => ep_snk_i(i), --fwd_src_out(i),
+        --snk_o   => ep_snk_o(i), --fwd_src_in(i),
+        --src_o	=> swc_src_o(i),
+        --src_i   => swc_src_i(i));
+    --end generate;
+    
+ --HSR_REG_A: xwrf_reg
+        --port map (
+          --rst_n_i => rst_n_i,
+          --clk_i   => clk_i,
+          --snk_i   => dummy_src_out(0),
+          --snk_o   => dummy_src_in(0),
+          --src_o   => swc_src_o(0),
+          --src_i   => swc_src_i(0));
+  
+  --HSR_REG_B: xwrf_reg
+        --port map (
+          --rst_n_i => rst_n_i,
+          --clk_i   => clk_i,
+          --snk_i   => dummy_src_out(1),
+          --snk_o   => dummy_src_in(1),
+          --src_o   => swc_src_o(1),
+          --src_i   => swc_src_i(1));
+            
+  U_XHSR_UNTAGGER_DEBUG: xhsr_untagger_debug
       port map (
         rst_n_i => rst_n_i,
         clk_i   => clk_i,
-        snk_i   => fwd_src_out(i),
-        snk_o   => fwd_src_in(i),
-        src_o	=> swc_src_o(i),
-        src_i   => swc_src_i(i));
-    end generate;
+        snk_i   => fwd_src_out(0),
+        snk_o   => fwd_src_in(0),
+        src_o	=> dummy_src_out(0),--swc_src_o(0),
+        src_i   => dummy_src_in(0)); --swc_src_i(0)
+   
+   swc_src_o(0) <= dummy_src_out(0);
+   dummy_src_in(0) <= swc_src_i(0);
+        
+   U_XHSR_UNTAGGER: xhsr_untagger
+      port map (
+        rst_n_i => rst_n_i,
+        clk_i   => clk_i,
+        snk_i   => fwd_src_out(1),
+        snk_o   => fwd_src_in(1),
+        src_o	=> dummy_src_out(1),
+        src_i   => dummy_src_in(1));
+        
+   swc_src_o(1) <= dummy_src_out(1);
+   dummy_src_in(1) <= swc_src_i(1);
 
   U_seq : xhsr_seq
     port map (
@@ -223,20 +266,46 @@ architecture behavioral of xwrsw_hsr_lre is
       valid1 => hsr_seq_valid(1)
     );
 
-  GEN_TAGGERS: for I in 0 to 1 generate
-      U_XHSR_TAGGER: xhsr_tagger
+  --GEN_TAGGERS: for I in 0 to 1 generate
+      --U_XHSR_TAGGER: xhsr_tagger
+        --port map (
+          --rst_n_i => rst_n_i,
+          --clk_i   => clk_i,
+          --snk_i   => swc_snk_i(i),
+          --snk_o   => swc_snk_o(i),
+          --src_o	=> ep_src_o(i), --tagger_src_out(i),
+          --src_i   => ep_src_i(i), --tagger_src_in(i),
+          --req_tag  => hsr_seq_query(i),
+	  --seq_n => seq_number(i),
+	  --seq_valid => hsr_seq_valid(i)
+	--);
+    --end generate;
+    
+    U_XHSR_TAGGER_DEBUG: xhsr_tagger_debug
         port map (
           rst_n_i => rst_n_i,
           clk_i   => clk_i,
-          snk_i   => swc_snk_i(i),
-          snk_o   => swc_snk_o(i),
-          src_o	=> tagger_src_out(i),
-          src_i   => tagger_src_in(i),
-          req_tag  => hsr_seq_query(i),
-	  seq_n => seq_number(i),
-	  seq_valid => hsr_seq_valid(i)
+          snk_i   => swc_snk_i(0),
+          snk_o   => swc_snk_o(0),
+          src_o	=>  tagger_src_out(0),
+          src_i   => tagger_src_in(0),
+          req_tag  => hsr_seq_query(0),
+	      seq_n => seq_number(0),
+	      seq_valid => hsr_seq_valid(0)
 	);
-    end generate;
+	
+	U_XHSR_TAGGER: xhsr_tagger
+        port map (
+          rst_n_i => rst_n_i,
+          clk_i   => clk_i,
+          snk_i   => swc_snk_i(1),
+          snk_o   => swc_snk_o(1),
+          src_o	=>  tagger_src_out(1),
+          src_i   =>  tagger_src_in(1),
+          req_tag  => hsr_seq_query(1),
+	      seq_n => seq_number(1),
+	      seq_valid => hsr_seq_valid(1)
+	);
 
 ---- While debugging we cannot have these modules created via a generate: ---- 
 --  GEN_FWD: for I in 0 to 1 generate
@@ -295,28 +364,33 @@ architecture behavioral of xwrsw_hsr_lre is
 			
 
 	-- DEBUG --
---	cs_icon : chipscope_icon
---	port map(
---		CONTROL0	=> CONTROL0
---	);
---	cs_ila : chipscope_ila
---	port map(
---		CLK		=> clk_i,
---		CONTROL	=> CONTROL0,
---		TRIG0		=> TRIG0,
---		TRIG1		=> TRIG1,
---		TRIG2		=> TRIG2,
---		TRIG3		=> TRIG3
---	);
+	cs_icon : chipscope_icon
+	port map(
+		CONTROL0	=> CONTROL0
+	);
+	cs_ila : chipscope_ila
+	port map(
+		CLK		=> clk_i,
+		CONTROL	=> CONTROL0,
+		TRIG0		=> TRIG0,
+		TRIG1		=> TRIG1,
+		TRIG2		=> TRIG2,
+		TRIG3		=> TRIG3
+	);
 --	
---trig0(1 downto 0) <= ep_snk_i(0).adr;
---trig0(17 downto 2) <= ep_snk_i(0).dat;
---trig0(18) <= ep_snk_i(0).cyc;
---trig0(19) <= ep_snk_i(0).stb;
---
---trig1(1 downto 0) <= ep_snk_i(1).adr;
---trig1(17 downto 2) <= ep_snk_i(1).dat;
---trig1(18) <= ep_snk_i(1).cyc;
---trig1(19) <= ep_snk_i(1).stb;
+trig0(1 downto 0) <= ep_snk_i(0).adr;
+trig0(17 downto 2) <= ep_snk_i(0).dat;
+trig0(18) <= ep_snk_i(0).cyc;
+trig0(19) <= ep_snk_i(0).stb;
+
+trig1(1 downto 0) <= dummy_src_out(0).adr;
+trig1(17 downto 2) <= dummy_src_out(0).dat;
+trig1(18) <= dummy_src_out(0).cyc;
+trig1(19) <= dummy_src_out(0).stb;
+
+trig2(0) <= dummy_src_in(0).stall;
+trig2(1) <= dummy_src_in(0).ack;
+
+
 
 end behavioral;
