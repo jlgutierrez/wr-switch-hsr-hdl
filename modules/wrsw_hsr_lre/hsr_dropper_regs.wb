@@ -1,0 +1,77 @@
+
+peripheral {
+
+	name = "WR Switch HSR LRE Dropper registers";
+	description = "HSR LRE Dropper registers";
+	hdl_entity = "hsr_lre_dropper_regs";
+	prefix = "dropper";
+	
+	ram{
+		name = "Dropper general RAM";
+		prefix = "ram";
+		size = 64;
+		width = 32;
+		access_bus = READ_WRITE;
+		access_dev = READ_WRITE;
+	};
+	
+	reg{
+		
+		name = "Available positions";
+		description = "This register shows which of the 32 available positions of the memory are occupied (1) or free to use (0).";
+		prefix = "avail";
+		
+		field{
+		
+			name = "Available positions";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		
+		};
+		
+	};
+	
+	reg{
+		
+		name = "Node removal register";
+		description = "Using this register the wishbone master can remove a node that has become inactive";
+		prefix = "del";
+		
+		field{
+			name = "Node removal index";
+			prefix = "index";
+			description = "Range 0 to 31. Targets the node to be removed";
+			align = 8;
+			size = 5;
+			type = SLV;
+			access_bus = READ_WRITE;
+			access_dev = READ_ONLY;
+		};
+		
+		field{
+			name = "Node removal command";
+			prefix = "cmd";
+			description = "When asserted, the dropper will promptly remove the indicated node from its memory.";
+			align = 8;
+			type = MONOSTABLE;
+			access_bus = READ_WRITE;
+			access_dev = READ_ONLY;
+		};
+		
+		field{
+			name = "Node list reset";
+			prefix = "rst";
+			description = "When asserted, all nodes in the ring will be forgotten and all positions will become available";
+			align = 8;
+			type = MONOSTABLE;
+			access_bus = READ_WRITE;
+			access_dev = READ_ONLY;
+		};
+			
+		
+		
+	};
+	
+};

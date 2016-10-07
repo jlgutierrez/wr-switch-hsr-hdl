@@ -3,11 +3,11 @@
 -- Project    : White Rabbit
 -------------------------------------------------------------------------------
 -- File       : xhsr_fwd.vhd
--- Author     : José Luis Gutiérrez
+-- Author     : José López
 -- Company    : University of Granada 
 -- Department : Computer Architecture and Technology
 -- Created    : 2016-01-18
--- Last update: 2016-01-18
+-- Last update: 2016-09-06
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -82,7 +82,16 @@ entity xhsr_fwd is
 -------------------------------------------------------------------------------  
 
 	fwd_dreq_i : in  std_logic;
-   fwd_fab_o : out  t_ep_internal_fabric
+   fwd_fab_o : out  t_ep_internal_fabric;
+	
+	
+	mac_addr_i : in std_logic_vector(47 downto 0);
+	
+	fwd_count_o : out std_logic_vector(31 downto 0);
+	clr_cnt_i   : in  std_logic;
+
+	
+	link_ok_i : in std_logic
 
     );
 end xhsr_fwd;
@@ -132,7 +141,11 @@ entity xhsr_fwd_debug is
 -------------------------------------------------------------------------------  
 
 	fwd_dreq_i : in  std_logic;
-   fwd_fab_o : out  t_ep_internal_fabric
+   fwd_fab_o : out  t_ep_internal_fabric;
+	
+	
+	mac_addr_i : in std_logic_vector(47 downto 0)
+	
 
     );
 end xhsr_fwd_debug;
@@ -182,6 +195,8 @@ architecture behavioral of xhsr_fwd is
   signal is_hsr                     : std_logic;
   signal is_other                   : std_logic;
   signal is_vlan_tagged             : std_logic;
+  
+  signal fwd_count						: std_logic_vector(31 downto 0);
   
   type t_fsm_state is (s_IDLE, s_PARSING, s_DROP, s_FORWARD);
   signal state : t_fsm_state;
@@ -269,7 +284,18 @@ architecture behavioral of xhsr_fwd is
 	begin
 	
 		if(rst_n_i = '0') then
-		
+			fwd_count <= (others => '0');
+			state <= s_IDLE;
+			hdr_done <= '0';
+			hdr_count <= (others => '0');
+			src_mac	 <= (others => '0');
+			dst_mac	 <= (others => '0');
+			is_multicast <= '0';
+			is_ptp		 <= '0';
+			is_hsr		 <= '0';
+			is_other     <= '0';
+			is_vlan_tagged <= '0';
+			
 		elsif(rising_edge(clk_i)) then
 		
 			case state is
@@ -322,11 +348,17 @@ architecture behavioral of xhsr_fwd is
 									
 									hdr_done <= '1';
 									
+							when x"7" =>
+									
 									-- If multicast and source != my mac, forward.
-									if(is_multicast = '1' and src_mac /= x"0800300DECFB") then
+									if(is_multicast = '1' and src_mac /= mac_addr_i and is_hsr = '1' and link_ok_i = '1') then
 										state <= s_FORWARD;
-									elsif(dst_mac /= x"0800300DECFB" and src_mac /= x"0800300DECFB") then
+										fwd_count <= std_logic_vector(unsigned(fwd_count) + 1);
+									elsif(dst_mac /= mac_addr_i and src_mac /= mac_addr_i and is_hsr = '1' and link_ok_i = '1') then
 										state <= s_FORWARD;
+										fwd_count <= std_logic_vector(unsigned(fwd_count) + 1);
+									elsif(is_ptp = '1') then
+										state <= s_DROP;
 									else
 										state <= s_DROP;
 									end if;
@@ -359,14 +391,24 @@ architecture behavioral of xhsr_fwd is
 				when others =>
 		
 			end case;
+			
+			if clr_cnt_i = '1' then
+				fwd_count <= (others => '0');
+			end if;
 		
 		end if;
 	
 	end process;
 	
+	fwd_count_o <= fwd_count;
+	
 	p_fwd_drop : process(clk_i)
 	begin
 		if rst_n_i = '0' then
+		
+			fifo_rd <= '0';
+			fifo_rd_d0 <= '0';
+			eof_d0 <= '0';
 		
 		elsif rising_edge(clk_i) then
 		
@@ -588,11 +630,15 @@ architecture behavioral_debug of xhsr_fwd_debug is
 									
 									hdr_done <= '1';
 									
+							when x"7" =>
+									
 									-- If multicast and source != my mac, forward.
-									if(is_multicast = '1' and src_mac /= x"0800300DECFB") then
+									if(is_multicast = '1' and src_mac /= mac_addr_i and is_hsr = '1') then
 										state <= s_FORWARD;
-									elsif(dst_mac /= x"0800300DECFB" and src_mac /= x"0800300DECFB") then
+									elsif(dst_mac /= mac_addr_i and src_mac /= mac_addr_i and is_hsr = '1') then
 										state <= s_FORWARD;
+									elsif(is_ptp = '1') then
+										state <= s_DROP;
 									else
 										state <= s_DROP;
 									end if;
@@ -665,7 +711,7 @@ architecture behavioral_debug of xhsr_fwd_debug is
 	end process;	
   
   
---  	-- DEBUG --
+----  	-- DEBUG --
 --	cs_icon : chipscope_icon
 --	port map(
 --		CONTROL0	=> CONTROL0
@@ -699,8 +745,8 @@ architecture behavioral_debug of xhsr_fwd_debug is
 	
 	trig1 <= dst_mac(47 downto 16);
 	trig2(15 downto 0) <= dst_mac(15 downto 0);
-	trig2(31 downto 16) <= src_mac(47 downto 32);
-	trig3 <= src_mac(31 downto 0);
+	trig2(31 downto 16) <= mac_addr_i(47 downto 32);
+	trig3 <= mac_addr_i(31 downto 0);
 	
 
 end behavioral_debug;

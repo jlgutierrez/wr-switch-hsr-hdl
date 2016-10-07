@@ -483,7 +483,10 @@ package wrsw_top_pkg is
 		swc_src_o : out t_wrf_source_out_array(g_num_ports-1 downto 0);
 		
 		wb_i : in  t_wishbone_slave_in;
-      wb_o : out t_wishbone_slave_out
+      wb_o : out t_wishbone_slave_out;
+		
+		mem_wb_i : in  t_wishbone_slave_in;
+		mem_wb_o : out t_wishbone_slave_out
 		
 		);
   end component;  

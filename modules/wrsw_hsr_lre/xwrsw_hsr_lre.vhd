@@ -95,12 +95,18 @@ entity xwrsw_hsr_lre is
     swc_snk_i : in  t_wrf_sink_in_array(g_num_ports-1 downto 0);     -- tx
 
 -------------------------------------------------------------------------------
--- Wishbone
+-- Wishbone general registers
 -------------------------------------------------------------------------------  
 	 
 	 wb_i		  : in  t_wishbone_slave_in;
-	 wb_o		  : out t_wishbone_slave_out
-   
+	 wb_o		  : out t_wishbone_slave_out;
+	 
+-------------------------------------------------------------------------------
+-- Wishbone dropper memory
+-------------------------------------------------------------------------------  
+	 
+	 mem_wb_i		  : in  t_wishbone_slave_in;
+	 mem_wb_o		  : out t_wishbone_slave_out   
 
     );
 end xwrsw_hsr_lre;
@@ -130,8 +136,12 @@ architecture behavioral of xwrsw_hsr_lre is
   signal TRIG2		: std_logic_vector(31 downto 0);
   signal TRIG3		: std_logic_vector(31 downto 0);
   
+  signal rst_n    : std_logic;
+  
   signal dummy_snk_out : t_wrf_sink_out_array(g_num_ports-1 downto 0);
   signal dummy_src_out : t_wrf_source_out_array(g_num_ports-1 downto 0);
+  signal dummy_src_in  : t_wrf_source_in_array(g_num_ports-1 downto 0);
+  signal dummy_snk_in  : t_wrf_sink_in_array(g_num_ports-1 downto 0);
   
   signal fwd_fab		  : t_ep_internal_fabric_array(1 downto 0);
   signal fwd_dreq	     : std_logic_vector(1 downto 0);
@@ -141,15 +151,49 @@ architecture behavioral of xwrsw_hsr_lre is
   signal tagger_snk_out	: t_wrf_sink_out_array(g_num_ports-1 downto 0);
   signal tagger_snk_in	: t_wrf_sink_in_array(g_num_ports-1 downto 0);
   
+  signal dropper_src_out : t_wrf_source_out_array(g_num_ports-1 downto 0);
+  signal dropper_src_in	: t_wrf_source_in_array(g_num_ports-1 downto 0);  
+  
+  signal ep_snk_out 		: t_wrf_sink_out_array(g_num_ports-1 downto 0);
+  signal ep_src_out 		: t_wrf_source_out_array(g_num_ports-1 downto 0);
+  signal swc_src_out		: t_wrf_source_out_array(g_num_ports-1 downto 0); -- rx
+  signal swc_snk_out		: t_wrf_sink_out_array(g_num_ports-1 downto 0);   -- tx
+  
+  signal swc_src_in		: t_wrf_source_in_array(g_num_ports-1 downto 0);
+  signal swc_snk_in		: t_wrf_sink_in_array(g_num_ports-1 downto 0);
+  signal ep_src_in 		: t_wrf_source_in_array(g_num_ports-1 downto 0);
+  signal ep_snk_in 		: t_wrf_sink_in_array(g_num_ports-1 downto 0);
+
+  signal fwd_src_out	: t_wrf_source_out_array(g_num_ports-1 downto 0);
+  signal fwd_src_in	: t_wrf_source_in_array(g_num_ports-1 downto 0);
+
+  -- taggers <-> sequencer
+  signal hsr_seq_query : std_logic_vector(1 downto 0);
+  type   t_array_seq_number is array (0 to 1) of std_logic_vector(15 downto 0); 
+  signal seq_number : t_array_seq_number; 
+  signal hsr_seq_valid : std_logic_vector(1 downto 0);
+  
   signal regs_towb	: t_lre_in_registers;
   signal regs_fromwb : t_lre_out_registers;
+  signal regs_rst		: std_logic;
+  
+  type t_fwd_ep_count is array (1 downto 0) of std_logic_vector(c_wishbone_data_width-1 downto 0);
+  signal fwd_ep_count : t_fwd_ep_count;
+  
+  
+  signal hsr_enable_d0 : std_logic;
   
   signal extended_ADDR : std_logic_vector(c_wishbone_address_width-1 downto 0);
   
   signal	 wb_in		:  t_wishbone_slave_in;
   signal	 wb_out     :  t_wishbone_slave_out;
+  
+  -- temporary signal, debug purposes
+  signal mem_wb_o_dat : std_logic_vector(31 downto 0);
 
   begin --rtl
+  
+    --rst_n <= rst_n_i and regs_rst;
 
 ---- Uncomment this (and comment the rest all the way down) ---
 ---- to disconnect the whole HSR LRE:                       ---
@@ -160,123 +204,157 @@ architecture behavioral of xwrsw_hsr_lre is
 --  swc_snk_o <= dummy_snk_out;
 ---------------------------------------------------------------
 
---   process(clk_i)
---     begin
---    if rising_edge(clk_i) then
---
---		  ep_snk_o <= swc_src_i;
---      ep_src_o <= swc_snk_i;
---
---      swc_snk_o <= ep_src_i;
---      swc_src_o <= ep_snk_i;
---      
+	rst_n <= rst_n_i and regs_fromwb.lcr_en_o;
 
---
-----		BYPASS_HSR: for J in 0 to 1 loop
-------			ep_src_o(j) <= tagger_src_out(j);
-------			tagger_src_in(j)	<= ep_src_i(j);
-----			
-----			swc_src_o(j) <= ep_snk_i(j);
-----			ep_snk_o(j) <= swc_src_i(j);
-----		end loop;
-----
---      BYPASS_NON_HSR: for J in 2 to 4 loop
---        ep_snk_o(j)		<= swc_src_i(j);
---        swc_src_o(j)	<= ep_snk_i(j);
---		  ep_src_o(j) <= swc_snk_i(j);
---		  swc_snk_o(j) <= ep_src_i(j);
---      end loop;
-		
---		BYPASS_NON_HSR_onemoretime: for J in 6 to c_NUM_PORTS loop
---        ep_snk_o(j)		<= swc_src_i(j);
---        swc_src_o(j)	<= ep_snk_i(j);
---		  ep_src_o(j) <= swc_snk_i(j);
---		  swc_snk_o(j) <= ep_src_i(j);
---      end loop;
+	ep_snk_o  <= swc_src_i when regs_fromwb.lcr_en_o = '0' else ep_snk_out;
+	ep_src_o  <= swc_snk_i when regs_fromwb.lcr_en_o = '0' else ep_src_out;
+	
+	swc_snk_o <= ep_src_i  when regs_fromwb.lcr_en_o = '0' else swc_snk_out;
+	swc_src_o <= ep_snk_i  when regs_fromwb.lcr_en_o = '0' else swc_src_out;
+	
+	swc_src_in <= dummy_src_in when regs_fromwb.lcr_en_o = '0' else swc_src_i;
+	swc_snk_in <= dummy_snk_in when regs_fromwb.lcr_en_o = '0' else swc_snk_i;
+	
+	ep_src_in  <= dummy_src_in when regs_fromwb.lcr_en_o = '0' else ep_src_i;
+	ep_snk_in  <= dummy_snk_in when regs_fromwb.lcr_en_o = '0' else ep_snk_i;
 
-		
-		
---
---    end if;
---  end process;
-  
-
-		
-		-- HSR-PORT INCOMING TRAFFIC BYPASSED
-		-- AS THERE IS NO LRE FOR CHECKING DUPLICATES YET:
-		
-		ep_snk_o(g_num_ports-1 downto 0) <= swc_src_i(g_num_ports-1 downto 0);
-		swc_src_o(g_num_ports-1 downto 0) <= ep_snk_i(g_num_ports-1 downto 0);
-		
-
-  GEN_TAGGERS: for I in 0 to 1 generate
-      -- Inserts HSR tag
-		-- Not implemented yet.
-      U_XHSR_TAGGER: xhsr_tagger
-        port map (
-          rst_n_i => rst_n_i,
-          clk_i   => clk_i,
-          snk_i   => swc_snk_i(i),
-          snk_o   => swc_snk_o(i),
-          src_o	=> tagger_src_out(i),
-          src_i   => tagger_src_in(i));
+  GEN_UNTAGGERS: for I in 0 to 1 generate
+    U_XHSR_UNTAGGER: xhsr_untagger
+      port map (
+        rst_n_i => rst_n,
+        clk_i   => clk_i,
+        snk_i   => dropper_src_out(i),
+        snk_o   => dropper_src_in(i),
+        src_o	=>  swc_src_out(i),
+        src_i   => swc_src_in(i));
     end generate;
 
+  U_seq : xhsr_seq
+    port map (
+      rst_n_i => rst_n,
+      clk_i   => clk_i,
+      request0 => hsr_seq_query(0),
+      request1 => hsr_seq_query(1),
+      seq_n0 => seq_number(0),
+      seq_n1 => seq_number(1),
+      valid0 => hsr_seq_valid(0),
+      valid1 => hsr_seq_valid(1)
+    );
+	 
+	 regs_towb.seq_ep0_i(15 downto 0) <= seq_number(0);
+	 regs_towb.seq_ep1_i(15 downto 0) <= seq_number(1);
+--
 
----- While debugging we cannot have these modules created via a generate: ---- 
---  GEN_FWD: for I in 0 to 1 generate
---  
---	U_FWD : xhsr_fwd
---		port map(
---			rst_n_i => rst_n_i,
---			clk_i => clk_i,
---			snk_i => ep_snk_i(i),
---			snk_o => ep_snk_o(i),
---			src_o => swc_src_o(i),
---			src_i => swc_src_i(i),
---			fwd_dreq_i => fwd_dreq(i),
---			fwd_fab_o => fwd_fab(i)
---		);
---  
---  end generate;
--------------------------------------------------------------------------------
+  U_DROPPER : xhsr_dropper
+	port map(
+		rst_n_i => rst_n,
+		clk_i => clk_i,
+		snk_i => fwd_src_out,
+		snk_o => fwd_src_in,
+		src_i => dropper_src_in,
+		src_o => dropper_src_out,
+		mac_addr_i => regs_fromwb.mach_o & regs_fromwb.macl_o,
+		
+		wb_adr_i   => mem_wb_i.adr(8 downto 2),	
+		wb_dat_i   => mem_wb_i.dat,                         
+		wb_dat_o   => mem_wb_o.dat,                    
+		wb_cyc_i   => mem_wb_i.cyc,                    
+		wb_sel_i   => mem_wb_i.sel,                    
+		wb_stb_i   => mem_wb_i.stb,                    
+		wb_we_i    => mem_wb_i.we,                     
+		wb_ack_o   => mem_wb_o.ack,                    
+		wb_stall_o => mem_wb_o.stall
 
-	U_FWD0 : xhsr_fwd
+	);
+
+----  Comment dropper and uncomment this to bypass dropper --
+--                                                         --
+--       dropper_src_out <= fwd_src_out;                   --
+--       fwd_src_in <= dropper_src_in;                     --
+--                                                         --
+-------------------------------------------------------------
+                                                    
+  GEN_TAGGERS: for I in 0 to 1 generate
+      U_XHSR_TAGGER: xhsr_tagger
+        port map (
+          rst_n_i => rst_n,
+          clk_i   => clk_i,
+          snk_i   => swc_snk_in(i),
+          snk_o   => swc_snk_out(i),
+          src_o	=> tagger_src_out(i),
+          src_i   => tagger_src_in(i),
+          req_tag  => hsr_seq_query(i),
+	  seq_n => seq_number(i),
+	  seq_valid => hsr_seq_valid(i)
+	);
+    end generate;
+
+--  U_XHSR_TAGGER0: xhsr_tagger
+--        port map (
+--          rst_n_i => rst_n_i,
+--          clk_i   => clk_i,
+--          snk_i   => swc_snk_i(0),
+--          snk_o   => swc_snk_o(0),
+--          src_o	=> tagger_src_out(0),
+--          src_i   => tagger_src_in(0),
+--          req_tag  => hsr_seq_query(0),
+--	  seq_n => seq_number(0),
+--	  seq_valid => hsr_seq_valid(0)
+--	);
+--	
+--	U_XHSR_TAGGER1: xhsr_tagger_debug
+--        port map (
+--          rst_n_i => rst_n_i,
+--          clk_i   => clk_i,
+--          snk_i   => swc_snk_i(1),
+--          snk_o   => swc_snk_o(1),
+--          src_o	=> tagger_src_out(1),
+--          src_i   => tagger_src_in(1),
+--          req_tag  => hsr_seq_query(1),
+--	  seq_n => seq_number(1),
+--	  seq_valid => hsr_seq_valid(1)
+--	);
+
+
+  GEN_FWD: for I in 0 to 1 generate
+  
+	U_FWD : xhsr_fwd
 		port map(
-			rst_n_i => rst_n_i,
+			rst_n_i => rst_n,
 			clk_i => clk_i,
-			snk_i => ep_snk_i(0),
-			snk_o => ep_snk_o(0),
-			src_o => swc_src_o(0),
-			src_i => swc_src_i(0),
-			fwd_dreq_i => fwd_dreq(0),
-			fwd_fab_o => fwd_fab(0)
+			snk_i => ep_snk_in(i),
+			snk_o => ep_snk_out(i),
+			src_o => fwd_src_out(i),
+			src_i => fwd_src_in(i),
+			fwd_dreq_i => fwd_dreq(i),
+			fwd_fab_o => fwd_fab(i),
+			mac_addr_i => regs_fromwb.mach_o & regs_fromwb.macl_o,
+			fwd_count_o => fwd_ep_count(i),
+			clr_cnt_i => regs_fromwb.lcr_clr_cnt_o,
+			link_ok_i => link_ok_i((i+1) mod 2)
 		);
+   end generate;
 
-	U_FWD1 : xhsr_fwd_debug
-		port map(
-			rst_n_i => rst_n_i,
-			clk_i => clk_i,
-			snk_i => ep_snk_i(1),
-			snk_o => ep_snk_o(1),
-			src_o => swc_src_o(1),
-			src_i => swc_src_i(1),
-			fwd_dreq_i => fwd_dreq(1),
-			fwd_fab_o => fwd_fab(1)
-		);
+   regs_towb.fwd_ep0_i <= fwd_ep_count(0);
+   regs_towb.fwd_ep1_i <= fwd_ep_count(1);  
 
 	 
 	U_junction : wrsw_hsr_junction
 		port map(
-			rst_n_i			=> rst_n_i,
+			rst_n_i			=> rst_n,
 			clk_i				=> clk_i,
 			link_ok_i		=> link_ok_i,
-			ep_src_o			=> ep_src_o,
-			ep_src_i			=> ep_src_i,
+			ep_src_o			=> ep_src_out,
+			ep_src_i			=> ep_src_in,
 			tagger_snk_i 	=> tagger_src_out,
 			tagger_snk_o 	=> tagger_src_in,
 			fwd_snk_fab_i 	=> fwd_fab,
-			fwd_snk_dreq_o	=> fwd_dreq);
+			fwd_snk_dreq_o	=> fwd_dreq,
+			bound_ep0_count_o => regs_towb.bound_ep0_i,
+			bound_ep1_count_o => regs_towb.bound_ep1_i,
+			dup_ep0_count_o => regs_towb.dup_ep0_i,
+			dup_ep1_count_o => regs_towb.dup_ep1_i,
+			clr_cnt_i		 => regs_fromwb.lcr_clr_cnt_o);
 
 
    extended_ADDR <= std_logic_vector(resize(unsigned(wb_i.adr), c_wishbone_address_width));
@@ -308,7 +386,7 @@ architecture behavioral of xwrsw_hsr_lre is
 	  port map(
 		 rst_n_i    => rst_n_i,
 		 clk_sys_i  => clk_i,
-		 wb_adr_i   => wb_in.adr(3 downto 0),
+		 wb_adr_i   => wb_in.adr(5 downto 2),
 		 wb_dat_i   => wb_in.dat,
 		 wb_dat_o   => wb_out.dat,
 		 wb_cyc_i   => wb_in.cyc,
@@ -320,6 +398,8 @@ architecture behavioral of xwrsw_hsr_lre is
 		 regs_i     => regs_towb,  --  : in     t_lre_in_registers;
 		 regs_o     => regs_fromwb --  : out    t_lre_out_registers
 	  );
+	  
+
 			
 
 	-- DEBUG --
@@ -336,15 +416,18 @@ architecture behavioral of xwrsw_hsr_lre is
 --		TRIG2		=> TRIG2,
 --		TRIG3		=> TRIG3
 --	);
---	
---trig0(1 downto 0) <= ep_snk_i(0).adr;
---trig0(17 downto 2) <= ep_snk_i(0).dat;
---trig0(18) <= ep_snk_i(0).cyc;
---trig0(19) <= ep_snk_i(0).stb;
---
---trig1(1 downto 0) <= ep_snk_i(1).adr;
---trig1(17 downto 2) <= ep_snk_i(1).dat;
---trig1(18) <= ep_snk_i(1).cyc;
---trig1(19) <= ep_snk_i(1).stb;
+
+	trig0   <= mem_wb_i.adr;
+	trig1   <= mem_wb_i.dat;                         
+	-- trig2   <= mem_wb_o.dat;                        
+	trig3(0)   <= mem_wb_i.cyc;                    
+	trig3(4 downto 1)   <= mem_wb_i.sel;  
+	trig3(5)   <= mem_wb_i.stb;             
+	trig3(6)   <= mem_wb_i.we;                    
+	--trig3(7)   <= mem_wb_o.ack;                    
+	--trig3(8)  <= mem_wb_o.stall;
+	
+	--mem_wb_o.dat <= mem_wb_o_dat;
+
 
 end behavioral;

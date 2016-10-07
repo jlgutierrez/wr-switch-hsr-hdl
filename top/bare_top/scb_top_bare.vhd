@@ -180,7 +180,7 @@ end scb_top_bare;
 architecture rtl of scb_top_bare is
 
   constant c_GW_VERSION    : std_logic_vector(31 downto 0) := x"20_02_14_00"; --DD_MM_YY_VV
-  constant c_NUM_WB_SLAVES : integer := 14;
+  constant c_NUM_WB_SLAVES : integer := 15;
   constant c_NUM_PORTS     : integer := g_num_ports;
   constant c_MAX_PORTS     : integer := 18;
   constant c_NUM_GL_PAUSE  : integer := 2; -- number of output global PAUSE sources for SWcore
@@ -213,12 +213,14 @@ architecture rtl of scb_top_bare is
   constant c_SLAVE_PSTATS       : integer := 11;
   constant c_SLAVE_HWIU         : integer := 12;
   constant c_SLAVE_LRE			  : integer := 13;
+  constant c_SLAVE_DROPPER		  : integer := 14;
   --constant c_SLAVE_DUMMY        : integer := 13;
 
   constant c_cnx_base_addr : t_wishbone_address_array(c_NUM_WB_SLAVES-1 downto 0) :=
     (
       --x"00070000",                      -- Dummy counters
-		x"00061000",
+		x"00062000",
+		x"00061000",							 -- LRE
       x"00059000",                      -- HWIU
       x"00058000",                      -- PStats counters
       x"00057000",                      -- TATSU
@@ -236,6 +238,7 @@ architecture rtl of scb_top_bare is
 
   constant c_cnx_base_mask : t_wishbone_address_array(c_NUM_WB_SLAVES-1 downto 0) :=
     (--x"000ff000",
+	  x"000ff000",
 	  x"000ff000",
      x"000ff000",
      x"000ff000",
@@ -359,7 +362,7 @@ architecture rtl of scb_top_bare is
   type t_trig is array(integer range <>) of std_logic_vector(31 downto 0);
 
   signal control0                   : std_logic_vector(35 downto 0);
-  signal trig0, trig1, trig2, trig3 : t_trig(7 downto 0);--std_logic_vector(31 downto 0);
+  signal trig0, trig1, trig2, trig3 : std_logic_vector(31 downto 0);--t_trig(7 downto 0);
   signal t0, t1, t2, t3             : std_logic_vector(31 downto 0);
   signal rst_n_periph               : std_logic;
   signal link_kill                  : std_logic_vector(c_NUM_PORTS-1 downto 0);
@@ -463,31 +466,31 @@ begin
 
 
 
-  --CS_ICON : chipscope_icon
-  --  port map (
-  --   CONTROL0 => CONTROL0);
-  --CS_ILA : chipscope_ila
-  --  port map (
-  --    CONTROL => CONTROL0,
-
-  --    CLK     => clk_sys,
-  --    TRIG0   => TRIG0,
-  --    TRIG1   => TRIG1,
-  --    TRIG2   => TRIG2,
-  --    TRIG3   => TRIG3);
+--  CS_ICON : chipscope_icon
+--    port map (
+--     CONTROL0 => CONTROL0);
+--  CS_ILA : chipscope_ila
+--    port map (
+--      CONTROL => CONTROL0,
+--
+--      CLK     => clk_sys,
+--      TRIG0   => TRIG0,
+--      TRIG1   => TRIG1,
+--      TRIG2   => TRIG2,
+--      TRIG3   => TRIG3);
 
 
   cnx_slave_in(0) <= cpu_wb_i;
   cpu_wb_o        <= cnx_slave_out(0);
 
-  --TRIG0 <= cpu_wb_i.adr;
-  --TRIG1 <= cpu_wb_i.dat;
-  --TRIG3 <= cnx_slave_out(0).dat;
-  --TRIG2(0) <= cpu_wb_i.cyc;
-  --TRIG2(1) <= cpu_wb_i.stb;
-  --TRIG2(2) <= cpu_wb_i.we;
-  --TRIG2(3) <= cnx_slave_out(0).stall;
-  --TRIG2(4) <= cnx_slave_out(0).ack;
+  TRIG0 <= cpu_wb_i.adr;
+  TRIG1 <= cpu_wb_i.dat;
+  TRIG3 <= cnx_slave_out(0).dat;
+  TRIG2(0) <= cpu_wb_i.cyc;
+  TRIG2(1) <= cpu_wb_i.stb;
+  TRIG2(2) <= cpu_wb_i.we;
+  TRIG2(3) <= cnx_slave_out(0).stall;
+  TRIG2(4) <= cnx_slave_out(0).ack;
 
   U_Sys_Clock_Mux : BUFGMUX
     generic map (
@@ -753,14 +756,14 @@ begin
 
     GEN_TIMING: for I in 0 to c_NUM_PORTS generate
       -- improve timing
-      U_WRF_RXREG_X: xwrf_reg
+       U_WRF_RXREG_X: xwrf_reg
         port map (
           rst_n_i => rst_n_periph,
           clk_i   => clk_sys,
-          snk_i   => endpoint_src_out(i),
-          snk_o   => endpoint_src_in(i),
-          src_o   => hsr_lre_snk_in(i),
-          src_i   => hsr_lre_snk_out(i));
+          snk_i   => hsr_lre_snk_in(i),
+          snk_o   => hsr_lre_snk_out(i),
+          src_o   => swc_src_out(i),
+			 src_i   => swc_src_in(i));
 
       U_WRF_TXREG_X: xwrf_reg
         port map(
@@ -769,18 +772,22 @@ begin
           snk_i   => hsr_lre_src_out(i),
           snk_o   => hsr_lre_src_in(i),
           src_o   => endpoint_snk_in(i),
-          src_i   => endpoint_snk_out(i));
+			 src_i	=> endpoint_snk_out(i));
     end generate;
 	 
   -- 'bypassing' ports unrelated to hsr ring
-  hsr_lre_snk_out(c_NUM_PORTS downto 3) <= swc_src_in(c_NUM_PORTS downto 3);
-  swc_src_out(c_NUM_PORTS downto 3) <= hsr_lre_snk_in(c_NUM_PORTS downto 3);
+  --hsr_lre_snk_out(c_NUM_PORTS downto 3) <= swc_src_in(c_NUM_PORTS downto 3);
+  --swc_src_out(c_NUM_PORTS downto 3) <= hsr_lre_snk_in(c_NUM_PORTS downto 3);
   hsr_lre_src_out(c_NUM_PORTS downto 3) <= swc_snk_in(c_NUM_PORTS downto 3);
   swc_snk_out(c_NUM_PORTS downto 3) <= hsr_lre_src_in(c_NUM_PORTS downto 3);
-  hsr_lre_snk_out(0) <= swc_src_in(0);
-  swc_src_out(0) <= hsr_lre_snk_in(0);
+  --hsr_lre_snk_out(0) <= swc_src_in(0);
+  --swc_src_out(0) <= hsr_lre_snk_in(0);
   hsr_lre_src_out(0) <= swc_snk_in(0);
-  swc_snk_out(0) <= hsr_lre_src_in(0);  
+  swc_snk_out(0) <= hsr_lre_src_in(0);
+  hsr_lre_snk_in(0) <= endpoint_src_out(0);
+  hsr_lre_snk_in(c_NUM_PORTS downto 3) <= endpoint_src_out(c_NUM_PORTS downto 3);
+  endpoint_src_in(0) <= hsr_lre_snk_out(0);
+  endpoint_src_in(c_NUM_PORTS downto 3) <= hsr_lre_snk_out(c_NUM_PORTS downto 3);
 
 	 
 	U_HSR_LRE : xwrsw_hsr_lre
@@ -792,18 +799,21 @@ begin
 		
 		link_ok_i => led_link(2 downto 1),
         
-      ep_snk_o   => hsr_lre_snk_out(2 downto 1), -- rx
-      ep_snk_i   => hsr_lre_snk_in(2 downto 1),  -- rx
+      ep_snk_o   => endpoint_src_in(2 downto 1), -- rx
+      ep_snk_i   => endpoint_src_out(2 downto 1),  -- rx
       ep_src_i   => hsr_lre_src_in(2 downto 1),  -- tx
       ep_src_o   => hsr_lre_src_out(2 downto 1), -- tx
         
       swc_snk_o   => swc_snk_out(2 downto 1), -- tx
       swc_snk_i   => swc_snk_in(2 downto 1),  -- tx
-      swc_src_i   => swc_src_in(2 downto 1),  -- rx
-      swc_src_o   => swc_src_out(2 downto 1),  -- rx
+      swc_src_i   => hsr_lre_snk_out(2 downto 1),  -- rx
+      swc_src_o   => hsr_lre_snk_in(2 downto 1),  -- rx
 		
 		wb_i        => cnx_master_out(c_SLAVE_LRE),
-		wb_o        => cnx_master_in(c_SLAVE_LRE)
+		wb_o        => cnx_master_in(c_SLAVE_LRE),
+		
+		mem_wb_i    => cnx_master_out(c_SLAVE_DROPPER),
+		mem_wb_o    => cnx_master_in(c_SLAVE_DROPPER)
     );	 
 
     gen_terminate_unused_eps : for i in c_NUM_PORTS to c_MAX_PORTS-1 generate
@@ -1158,24 +1168,24 @@ begin
   clk_sys_o         <= clk_sys;
 
 
-  gen_muxed_CS: if g_with_muxed_CS = true generate
-    CS_ICON : chipscope_icon
-     port map (
-      CONTROL0 => CONTROL0);
-    CS_ILA : chipscope_ila
-     port map (
-       CONTROL => CONTROL0,
-       CLK     => clk_sys, --phys_i(0).rx_clk,
-       TRIG0   => T0,
-       TRIG1   => T1,
-       TRIG2   => T2,
-       TRIG3   => T3);
-  
-       T0   <= TRIG0(to_integer(unsigned(dbg_chps_id)));
-       T1   <= TRIG1(to_integer(unsigned(dbg_chps_id)));
-       T2   <= TRIG2(to_integer(unsigned(dbg_chps_id)));
-       T3   <= TRIG3(to_integer(unsigned(dbg_chps_id)));
-  end generate;
+--  gen_muxed_CS: if g_with_muxed_CS = true generate
+----    CS_ICON : chipscope_icon
+----     port map (
+----      CONTROL0 => CONTROL0);
+----    CS_ILA : chipscope_ila
+----     port map (
+----       CONTROL => CONTROL0,
+----       CLK     => clk_sys, --phys_i(0).rx_clk,
+----       TRIG0   => T0,
+----       TRIG1   => T1,
+----       TRIG2   => T2,
+----       TRIG3   => T3);
+--  
+--       T0   <= TRIG0(to_integer(unsigned(dbg_chps_id)));
+--       T1   <= TRIG1(to_integer(unsigned(dbg_chps_id)));
+--       T2   <= TRIG2(to_integer(unsigned(dbg_chps_id)));
+--       T3   <= TRIG3(to_integer(unsigned(dbg_chps_id)));
+--  end generate;
 
   ----------------------------- dbg_id0
   --TRIG0(0)(15    downto   0) <= phys_i(0).rx_data;            

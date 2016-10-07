@@ -51,7 +51,17 @@ peripheral {
 				type = SLV;
 				size = 4;
 			};
+
+			field{
+				name = "Clear counters";
+				description = "Sets the fwd, dropped, accepted and duplicated counters back to zero.";
+				prefix = "CLR_CNT";
+				access_bus = READ_WRITE;
+				access_dev = READ_ONLY;
+				type = MONOSTABLE;
+			};
 			
+
 			
 	};
 	
@@ -115,7 +125,7 @@ peripheral {
 
 	reg{
 		name = "Ep0 dropped frames";
-		description = "Number of dropped frames arriving at ep0";
+		description = "Number of dropped frames arriving from ep0";
 		prefix = "DISC_EP0";
 		
 		field{
@@ -129,7 +139,7 @@ peripheral {
 	
 	reg{
 		name = "Ep1 dropped frames";
-		description = "Number of dropped frames arriving at ep1";
+		description = "Number of dropped frames arriving from ep1";
 		prefix = "DISC_EP1";
 		
 		field{
@@ -143,7 +153,7 @@ peripheral {
 	
 	reg{
 		name = "Ep0 accepted frames";
-		description = "Number of accepted frames arriving at ep0";
+		description = "Number of accepted frames arriving from ep0";
 		prefix = "ACC_EP0";
 		
 		field{
@@ -157,11 +167,95 @@ peripheral {
 	
 	reg{
 		name = "Ep1 accepted frames";
-		description = "Number of accepted frames arriving at ep1";
+		description = "Number of accepted frames arriving from ep1";
 		prefix = "ACC_EP1";
 		
 		field{
 			name = "Accepted frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+
+	reg{
+		name = "Ep0 bound frames";
+		description = "Number of ep0-bound frames that are to be duplicated";
+		prefix = "BOUND_EP0";
+		
+		field{
+			name = "EP0-bound frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+
+	reg{
+		name = "Ep1 bound frames";
+		description = "Number of ep1-bound frames that are to be duplicated";
+		prefix = "BOUND_EP1";
+		
+		field{
+			name = "EP1-bound frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+
+	reg{
+		name = "Ep0 duplicated frames";
+		description = "Number of ep0-bound frames that come out of the arbiter";
+		prefix = "DUP_EP0";
+		
+		field{
+			name = "Duplicated frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+
+	reg{
+		name = "Ep1 duplicated frames";
+		description = "Number of ep1-bound frames that come out of the arbiter";
+		prefix = "DUP_EP1";
+		
+		field{
+			name = "Duplicated frames";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+
+	reg{
+		name = "Ep0 sequence number";
+		description = "Shows the HSR sequence number of the last frame bound to port 0";
+		prefix = "SEQ_EP0";
+		
+		field{
+			name = "Sequence number";
+			type = SLV;
+			size = 32;
+			access_bus = READ_ONLY;
+			access_dev = WRITE_ONLY;
+		};
+	};
+
+	reg{
+		name = "Ep1 sequence number";
+		description = "Shows the HSR sequence number of the last frame bound to port 1";
+		prefix = "SEQ_EP1";
+		
+		field{
+			name = "Sequence number";
 			type = SLV;
 			size = 32;
 			access_bus = READ_ONLY;
