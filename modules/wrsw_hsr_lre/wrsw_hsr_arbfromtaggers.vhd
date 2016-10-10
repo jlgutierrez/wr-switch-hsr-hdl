@@ -82,8 +82,6 @@ entity wrsw_hsr_arbfromtaggers is
 	   dup_ep0_count_o		: out std_logic_vector(31 downto 0);
 	   dup_ep1_count_o		: out std_logic_vector(31 downto 0);
 	   clr_cnt_i 				: in  std_logic
-		
-
     );
 end wrsw_hsr_arbfromtaggers;
 
