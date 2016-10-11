@@ -489,7 +489,7 @@ architecture behavioral of xhsr_dropper is
                               src_mac(i)(15 downto 0)  <= snk_i(i).dat;
                               senaldebug(i)            <= x"0009";
                         when x"6" =>
-                              if snk_i(i).dat = x"892f" or snk_i(i).dat = x"88fb" then
+                              if snk_i(i).dat = x"892f" then
                                  is_hsr(i)             <= '1';
                                  senaldebug(i)         <= x"000A";
                               else
