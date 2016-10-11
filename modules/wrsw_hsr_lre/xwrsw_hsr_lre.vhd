@@ -263,7 +263,12 @@ architecture behavioral of xwrsw_hsr_lre is
 		wb_stb_i   => mem_wb_i.stb,                    
 		wb_we_i    => mem_wb_i.we,                     
 		wb_ack_o   => mem_wb_o.ack,                    
-		wb_stall_o => mem_wb_o.stall
+		wb_stall_o => mem_wb_o.stall,
+      
+      disc_ep0_o => regs_towb.disc_ep0_i,
+      disc_ep1_o => regs_towb.disc_ep1_i,
+      acc_ep0_o  => regs_towb.acc_ep0_i,
+      acc_ep1_o  => regs_towb.acc_ep1_i
 
 	);
 

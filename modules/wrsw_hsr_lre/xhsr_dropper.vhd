@@ -87,7 +87,12 @@ entity xhsr_dropper is
     wb_stb_i                                 : in     std_logic;
     wb_we_i                                  : in     std_logic;
     wb_ack_o                                 : out    std_logic;
-    wb_stall_o                               : out    std_logic    
+    wb_stall_o                               : out    std_logic;
+    
+    disc_ep0_o                               : out    std_logic_vector(31 downto 0);
+    disc_ep1_o                               : out    std_logic_vector(31 downto 0);
+    acc_ep0_o                                : out    std_logic_vector(31 downto 0);
+    acc_ep1_o                                : out    std_logic_vector(31 downto 0)    
    
     );
 end xhsr_dropper;
@@ -122,6 +127,7 @@ architecture behavioral of xhsr_dropper is
        dropper_ram_wr_i                         : in     std_logic;
        regs_i                                   : in     t_dropper_in_registers;
        regs_o                                   : out    t_dropper_out_registers
+       
      );
    end component;
   
@@ -592,6 +598,7 @@ architecture behavioral of xhsr_dropper is
                      write_node(i)          <= '1';
                      nodeid_wr(i)           <= curr_nodeid(i);
                      senaldebug(i)          <= x"0017";
+                     accept_count(i)        <= std_logic_vector(unsigned(accept_count(i))+1);
                      
                   else
                   
@@ -624,6 +631,7 @@ architecture behavioral of xhsr_dropper is
                      
                      if mem_busy = '0' then
                         write_node(i)       <= '1';
+                        accept_count(i)     <= std_logic_vector(unsigned(accept_count(i))+1);
                      else
                         write_node(i)       <= '0';
                      end if;
@@ -653,6 +661,7 @@ architecture behavioral of xhsr_dropper is
                
                when s_DROP =>
                   
+                  drop_count(i)        <= std_logic_vector(unsigned(drop_count(i))+1);
                   state(i)                  <= s_IDLE;
                   senaldebug(i)             <= x"001E";
                   -- Previously if EOF:
@@ -747,7 +756,10 @@ architecture behavioral of xhsr_dropper is
    end generate gen_p_header;
    
    available_pos          <= available_pos_int(0) or available_pos_int(1);
-   
+   acc_ep0_o              <= accept_count(0);
+   acc_ep1_o              <= accept_count(1);
+   disc_ep0_o             <= drop_count(0);
+   disc_ep1_o             <= drop_count(1);
 
    
    p_wb_mem_input2 : process(clk_i)

@@ -288,7 +288,12 @@ package wrsw_hsr_lre_pkg is
 	 wb_stb_i                                 : in     std_logic;
 	 wb_we_i                                  : in     std_logic;
 	 wb_ack_o                                 : out    std_logic;
-	 wb_stall_o                               : out    std_logic	 
+	 wb_stall_o                               : out    std_logic;
+
+    disc_ep0_o                               : out    std_logic_vector(31 downto 0);
+    disc_ep1_o                               : out    std_logic_vector(31 downto 0);
+    acc_ep0_o                                : out    std_logic_vector(31 downto 0);
+    acc_ep1_o                                : out    std_logic_vector(31 downto 0)
 	 
 	
     );
