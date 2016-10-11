@@ -51,6 +51,16 @@ peripheral {
 				type = SLV;
 				size = 4;
 			};
+			
+			field{
+				name = "Link ok";
+				description = "When asserted, the connection is established.\nThis info comes directly from ethernet autonegotiation module.\nMSB: port 1.\nLSB: port 0.";
+				prefix = "LINK_OK";
+				access_bus = READ_ONLY;
+				access_dev = WRITE_ONLY;
+				type = SLV;
+				size = 2;
+			};
 
 			field{
 				name = "Clear counters";

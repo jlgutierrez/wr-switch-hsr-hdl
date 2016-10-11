@@ -398,7 +398,8 @@ architecture behavioral of xwrsw_hsr_lre is
 		 regs_i     => regs_towb,  --  : in     t_lre_in_registers;
 		 regs_o     => regs_fromwb --  : out    t_lre_out_registers
 	  );
-	  
+     
+     regs_towb.lcr_link_ok_i <= link_ok_i;
 
 			
 
