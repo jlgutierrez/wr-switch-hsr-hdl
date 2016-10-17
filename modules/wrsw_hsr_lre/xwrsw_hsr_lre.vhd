@@ -114,6 +114,8 @@ end xwrsw_hsr_lre;
 architecture behavioral of xwrsw_hsr_lre is
 
   constant c_NUM_PORTS     : integer := g_num_ports; --GUTI: to be fix
+  constant c_hsr_path0     : std_logic_vector(3 downto 0) := "0000"; 
+  constant c_hsr_path1     : std_logic_vector(3 downto 0) := "0001";
   
   component chipscope_icon
     port (
@@ -279,20 +281,52 @@ architecture behavioral of xwrsw_hsr_lre is
 --                                                         --
 -------------------------------------------------------------
                                                     
-  GEN_TAGGERS: for I in 0 to 1 generate
-      U_XHSR_TAGGER: xhsr_tagger
+  --GEN_TAGGERS: for I in 0 to 1 generate
+      --U_XHSR_TAGGER: xhsr_tagger
+        --port map (
+          --rst_n_i => rst_n,
+          --clk_i   => clk_i,
+          --snk_i   => swc_snk_in(i),
+          --snk_o   => swc_snk_out(i),
+          --src_o	=> tagger_src_out(i),
+          --src_i   => tagger_src_in(i),
+          --req_tag  => hsr_seq_query(i),
+	  --seq_n => seq_number(i),
+	  --seq_valid => hsr_seq_valid(i)
+	--);
+    --end generate;
+    
+    U_XHSR_TAGGER_L: xhsr_tagger
+        generic map( 
+          g_hsr_path_id => c_hsr_path0
+        )
         port map (
-          rst_n_i => rst_n,
+          rst_n_i => rst_n_i,
           clk_i   => clk_i,
-          snk_i   => swc_snk_in(i),
-          snk_o   => swc_snk_out(i),
-          src_o	=> tagger_src_out(i),
-          src_i   => tagger_src_in(i),
-          req_tag  => hsr_seq_query(i),
-	  seq_n => seq_number(i),
-	  seq_valid => hsr_seq_valid(i)
+          snk_i   => swc_snk_i(0),
+          snk_o   => swc_snk_o(0),
+          src_o	=>  tagger_src_out(0),
+          src_i   => tagger_src_in(0),
+          req_tag  => hsr_seq_query(0),
+	      seq_n => seq_number(0),
+	      seq_valid => hsr_seq_valid(0)
 	);
-    end generate;
+	
+	U_XHSR_TAGGER_R: xhsr_tagger
+        generic map( 
+          g_hsr_path_id => c_hsr_path1
+        )
+        port map (
+          rst_n_i => rst_n_i,
+          clk_i   => clk_i,
+          snk_i   => swc_snk_i(1),
+          snk_o   => swc_snk_o(1),
+          src_o	=>  tagger_src_out(1),
+          src_i   =>  tagger_src_in(1),
+          req_tag  => hsr_seq_query(1),
+	      seq_n => seq_number(1),
+	      seq_valid => hsr_seq_valid(1)
+);    
 
 --  U_XHSR_TAGGER0: xhsr_tagger
 --        port map (
