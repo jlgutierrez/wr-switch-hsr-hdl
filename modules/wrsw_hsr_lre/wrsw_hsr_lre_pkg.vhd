@@ -59,8 +59,8 @@ package wrsw_hsr_lre_pkg is
   component xhsr_tagger
     generic (
 	  g_adr_width : integer := 2;
-	  g_dat_width : integer :=16
-	  --g_num_ports : integer
+	  g_dat_width : integer :=16;
+	  g_hsr_path_id : std_logic_vector(3 downto 0)
 	  );
     port (
 
@@ -78,8 +78,8 @@ package wrsw_hsr_lre_pkg is
   component xhsr_tagger_debug
     generic (
 	  g_adr_width : integer := 2;
-	  g_dat_width : integer :=16
-	  --g_num_ports : integer
+	  g_dat_width : integer :=16;
+	  g_hsr_path_id : std_logic_vector(3 downto 0)
 	  );
     port (
 

@@ -98,6 +98,8 @@ end xwrsw_hsr_lre;
 architecture behavioral of xwrsw_hsr_lre is
 
   constant c_NUM_PORTS     : integer := g_num_ports; --GUTI: to be fix
+  constant c_hsr_path0	   : std_logic_vector(3 downto 0) := "0000";
+  constant c_hsr_path1	   : std_logic_vector(3 downto 0) := "0001";
   
   component chipscope_icon
     port (
@@ -281,7 +283,10 @@ architecture behavioral of xwrsw_hsr_lre is
 	--);
     --end generate;
     
-    U_XHSR_TAGGER_DEBUG: xhsr_tagger_debug
+    U_XHSR_TAGGER_L: xhsr_tagger
+        generic map( 
+          g_hsr_path_id => c_hsr_path0
+        )
         port map (
           rst_n_i => rst_n_i,
           clk_i   => clk_i,
@@ -294,7 +299,10 @@ architecture behavioral of xwrsw_hsr_lre is
 	      seq_valid => hsr_seq_valid(0)
 	);
 	
-	U_XHSR_TAGGER: xhsr_tagger
+	U_XHSR_TAGGER_R: xhsr_tagger
+        generic map( 
+          g_hsr_path_id => c_hsr_path1
+        )
         port map (
           rst_n_i => rst_n_i,
           clk_i   => clk_i,
@@ -363,20 +371,20 @@ architecture behavioral of xwrsw_hsr_lre is
 			fwd_snk_dreq_o	=> fwd_dreq);
 			
 
-	-- DEBUG --
-	cs_icon : chipscope_icon
-	port map(
-		CONTROL0	=> CONTROL0
-	);
-	cs_ila : chipscope_ila
-	port map(
-		CLK		=> clk_i,
-		CONTROL	=> CONTROL0,
-		TRIG0		=> TRIG0,
-		TRIG1		=> TRIG1,
-		TRIG2		=> TRIG2,
-		TRIG3		=> TRIG3
-	);
+	---- DEBUG --
+	--cs_icon : chipscope_icon
+	--port map(
+		--CONTROL0	=> CONTROL0
+	--);
+	--cs_ila : chipscope_ila
+	--port map(
+		--CLK		=> clk_i,
+		--CONTROL	=> CONTROL0,
+		--TRIG0		=> TRIG0,
+		--TRIG1		=> TRIG1,
+		--TRIG2		=> TRIG2,
+		--TRIG3		=> TRIG3
+	--);
 --	
 trig0(1 downto 0) <= ep_snk_i(0).adr;
 trig0(17 downto 2) <= ep_snk_i(0).dat;
