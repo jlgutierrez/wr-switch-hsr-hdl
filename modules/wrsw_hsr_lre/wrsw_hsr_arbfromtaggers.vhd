@@ -531,10 +531,7 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 								end if;
 							end if;
 
-							-- Be aware that as of today conditions are knowingly wrong.
-							-- The reason is that currently there is no HSR tagger.
-							-- these nested IFs are hideous. It should be much simpler
-							-- when signals are conditionally assigned using WHENs.
+
 							if( unsigned(word_count) = (to_unsigned(9,word_count'length)) ) then
 								if( slot1.source = '0' ) then
 									if( tagger_snk_i(0).dat = x"88f7") then--tagger_snk_i(0).dat = x"892f" or tagger_snk_i(0).dat = x"88f7") then
@@ -766,7 +763,8 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 									senaldebug1 <= x"0B";
 								end if;
 								rd_state0 			<= FINISH_CYCLE;
-							else
+							
+                     else
 								snk_fab_0.sof		<= '0';
 								snk_fab_0.eof		<= '0';
 								snk_fab_0.bytesel	<= not dout_b(16); -- intrigued? See state DATA of FSM in ep_rx_wb_master.
@@ -905,6 +903,20 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 									senaldebug2 <= x"0C";
 								end if;
 								rd_state1 			<= FINISH_CYCLE;
+                        
+                     elsif rd_offset_c = 8 then
+                     
+                        snk_fab_1.sof		<= '0';
+								snk_fab_1.eof		<= '0';
+								snk_fab_1.bytesel	<= not dout_c(16); -- intrigued? See state DATA of FSM in ep_rx_wb_master.
+								
+                        -- Reading FSM number 2 is responsible for inserting the correct LaneID bit
+                        -- (one of the fields of the Path ID):
+                        snk_fab_1.data		<= (dout_c(15 downto 0) and x"0001");
+								snk_fab_1.addr		<= dout_c(19 downto 18);
+								snk_fab_1.dvalid	<= dout_c(20);
+								senaldebug1 <= x"0C";
+                        
 							else
 								snk_fab_1.sof		<= '0';
 								snk_fab_1.eof		<= '0';
@@ -1007,279 +1019,7 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 --		TRIG2		=> TRIG2,
 --		TRIG3		=> TRIG3
 --	);
-----	
---	trig0(15 downto 0)	<= tagger_snk_i(0).dat;
---	trig0(16)				<= tagger_snk_i(0).cyc;
---	trig0(17)				<= tagger_snk_i(0).stb;
---	trig0(19 downto 18)	<= tagger_snk_i(0).adr;
---	
---	trig1(c_mem_width-1 downto 0) <= din_a;
---	
---	trig2(0)					<= write_a;
---	trig2(11 downto 1)	<= addr_a;
---	trig2(13 downto 12)	<= sof;
---	trig2(15 downto 14)	<= eof;
---	trig2(17 downto 16)	<= snk_valid;
---	trig2(19 downto 18)	<= stall;
---	trig2(21 downto 20)	<= snk_dreq;	
 
--- DEBUG SIGNALS FOR wrsw_hsr_arbfromtaggers.cpj
-
---	trig0(15 downto 0)	<= tagger_snk_i(0).dat;
---	trig0(16)				<= tagger_snk_i(0).cyc;
---	trig0(17)				<= tagger_snk_i(0).stb;
---	
---	trig0(18)				<= slot0.is_hsr;
---	trig0(19)				<= slot0.is_ptp;
---	trig0(24 downto 20)	<= word_count(4 downto 0);
---	
---	trig1(15 downto 0)	<= tagger_snk_i(1).dat;
---	trig1(16)				<= tagger_snk_i(1).cyc;
---	trig1(17)				<= tagger_snk_i(1).stb;
---	
---	trig3(0)					<= write_a;
---	trig3(11 downto 1)	<= addr_a;
---	trig3(13 downto 12)	<= sof;
---	trig3(15 downto 14)	<= eof;
---	trig3(17 downto 16)	<= snk_valid;
---	trig3(19 downto 18)	<= stall;
---	trig3(21 downto 20)	<= snk_dreq;
---	
---	trig3(0)					<= slot0.available;
---	trig3(1)					<= slot0.writing;
---	trig3(2)					<= slot0.written;
---	trig3(3)					<= slot0.reading_0;
---	trig3(4)					<= slot0.reading_1;
---	trig3(5)					<= slot0.finished_0;
---	trig3(6)					<= slot0.finished_1;
---	trig3(7)					<= slot0.source;
---	
---	trig3(8)					<= slot1.available;
---	trig3(9)					<= slot1.writing;
---	trig3(10)					<= slot1.written;
---	trig3(11)					<= slot1.reading_0;
---	trig3(12)					<= slot1.reading_1;
---	trig3(13)					<= slot1.finished_0;
---	trig3(14)					<= slot1.finished_1;
---	trig3(15)					<= slot1.source;
---	
---	trig3(31 downto 24) <= senaldebug0;
---	trig3(23 downto 16) <= senaldebug1;
-
--- DEBUG SIGNALS FOR arbfromtaggers_portb.cpj
-
---	trig0(0)					<= tagger_snk_i(0).cyc;
---	trig0(1)				<= tagger_snk_i(0).stb;
---	trig0(22 downto 2) <= din_a;
---	trig0(23)					<= write_a;
---	trig2(25 downto 24)	<= sof;
---	trig2(27 downto 26)	<= eof;
---	trig2(29 downto 28)	<= snk_valid;
---	trig2(31 downto 30)	<= stall;
---	trig2(0) <= write_a;
---	trig2(1) <= write_b;
---	trig2(2) <= write_c;
-
-	
---	trig1(10 downto 0)	<= addr_a;
---	trig1(12 downto 11)	<= snk_dreq;
---
---	trig2(10 downto 0)	<= addr_b;
---	trig2(31 downto 11)	<= dout_b;
---	
---	trig1(13)				<= snk_fab_0.sof;
---	trig1(14)				<= snk_fab_0.eof;
---	trig1(15)				<= snk_fab_0.dvalid;
---	trig1(31 downto 16)	<= snk_fab_0.data;
---		
---	trig3(0)					<= slot0.available;
---	trig3(1)					<= slot0.writing;
---	trig3(2)					<= slot0.written;
---	trig3(3)					<= slot0.reading_0;
---	trig3(4)					<= slot0.reading_1;
---	trig3(5)					<= slot0.finished_0;
---	trig3(6)					<= slot0.finished_1;
---	trig3(7)					<= slot0.source;
---	
---	trig3(8)					<= slot1.available;
---	trig3(9)					<= slot1.writing;
---	trig3(10)					<= slot1.written;
---	trig3(11)					<= slot1.reading_0;
---	trig3(12)					<= slot1.reading_1;
---	trig3(13)					<= slot1.finished_0;
---	trig3(14)					<= slot1.finished_1;
---	trig3(15)					<= slot1.source;
---	
---	trig3(28 downto 24) <= senaldebug0(4 downto 0);
---	trig3(20 downto 16) <= senaldebug1(4 downto 0);
-
----- DEBUG for signals going from epwbmaster to endpoints:
-----	trig0(0)					<= tagger_snk_i(0).cyc;
-----	trig0(1)				<= tagger_snk_i(0).stb;
-----	trig0(22 downto 2) <= din_a;
-----	trig0(23)					<= write_a;
-----	trig0(25 downto 24)	<= sof;
-----	trig0(27 downto 26)	<= eof;
---	trig0(29 downto 28)	<= snk_valid;
-----	trig0(31 downto 30)	<= stall;
-----	trig1(10 downto 0)	<= addr_a;
---	trig1(12 downto 11)	<= snk_dreq;
-----
---	trig2(10 downto 0)	<= addr_b;
---	trig2(31 downto 11)	<= dout_b;
---
---	trig1(13)				<= snk_fab_0.sof;
---	trig1(14)				<= snk_fab_0.eof;
---	trig1(15)				<= snk_fab_0.dvalid;
---	trig1(31 downto 16)	<= snk_fab_0.data;
---	
---	trig1(1 downto 0)		<= ep_src_o_int(1).adr;
---	trig1(17 downto 2)   <= ep_src_o_int(1).dat;
---	trig1(18)				<= ep_src_o_int(1).cyc;
---	trig1(19)				<= ep_src_o_int(1).stb;
---	trig1(20)				<= ep_src_i(1).ack;
---	trig1(21)				<= ep_src_i(1).stall;
-----	
---	trig0(22)				<= tagger_snk_i(0).cyc;
---	trig0(23)				<= tagger_snk_i(0).stb;
-----		
---	trig3(0)					<= slot0.available;
---	trig3(1)					<= slot0.writing;
---	trig3(2)					<= slot0.written;
---	trig3(3)					<= slot0.reading_0;
---	trig3(4)					<= slot0.reading_1;
---	trig3(5)					<= slot0.finished_0;
---	trig3(6)					<= slot0.finished_1;
---	trig3(7)					<= slot0.source;
---	trig3(8)					<= slot0.is_multicast;
---	
---	trig3(23)					<= slot1.available;
---	trig3(24)					<= slot1.writing;
---	trig3(25)					<= slot1.written;
---	trig3(26)					<= slot1.reading_0;
---	trig3(27)					<= slot1.reading_1;
---	trig3(28)					<= slot1.finished_0;
---	trig3(29)					<= slot1.finished_1;
---	trig3(30)					<= slot1.source;
---	trig3(31)					<= slot1.is_multicast;
-	trig0						<= dup_ep1_count;
-	trig1						<= dup_ep1_count;
-	trig2						<= bound_ep0_count; 
-	trig3						<= bound_ep1_count;
---	
---	trig3(28 downto 24) <= senaldebug0(4 downto 0);
---	trig3(20 downto 16) <= senaldebug1(4 downto 0);
---	
--- DEBUG SIGNALS FOR COMPARING RAW FRAMES:
---	trig0(0)				<= tagger_snk_i(0).cyc;
---	trig0(1)				<= tagger_snk_i(0).stb;
---	trig0(3 downto 2)	<= tagger_snk_i(0).adr;
---	trig0(19 downto 4) <= tagger_snk_i(0).dat;
-----	trig0(20)			<= tagger_snk_o(0).ack;
-----	trig0(21)			<= tagger_snk_o(0).err;
---	trig0(20)			<= tagger_snk_i(1).cyc;
---	trig0(21)			<= tagger_snk_i(1).stb;
---	trig0(23 downto 22)	<= tagger_snk_i(1).adr;
---	trig0(31 downto 24)	<= tagger_snk_i(1).dat(7 downto 0);
---	
---	trig1(0)				<= write_a;
---	trig1(21 downto 1) <= din_a;
---	trig1(31 downto 22) <= addr_a(9 downto 0);
---	
---	trig2(0)				<= write_b;
---	trig2(21 downto 1) <= dout_b;
---	trig2(31 downto 22) <= addr_b(9 downto 0);
---	
---	
---	trig3(0)				<= ep_src_o_int(0).cyc;
---	trig3(1)				<= ep_src_o_int(0).stb;
---	trig3(3 downto 2)	<= ep_src_o_int(0).adr;
---	trig3(19 downto 4) <= ep_src_o_int(0).dat;
---	trig3(20)			<= ep_src_i(0).ack;
---	trig3(21)			<= ep_src_i(0).err;	
---	
--- DEBUG SIGNALS FOR 20160315 ('inherited' from comparerawframes):
---	trig0(0)				<= tagger_snk_i(0).cyc;
---	trig0(1)				<= tagger_snk_i(0).stb;
---	trig0(3 downto 2)	<= tagger_snk_i(0).adr;
---	trig0(19 downto 4) <= tagger_snk_i(0).dat;
---
---	trig1(0)	<= snk_fab_0.sof;
---	trig1(1) <= snk_fab_0.eof;
---	trig1(2) <= snk_fab_0.dvalid;
---	trig1(18 downto 3) <= snk_fab_0.data;
---	trig1(20 downto 19) <= snk_fab_0.addr;
---	trig1(21) <= snk_dreq(0);
---	
---	
---	trig3(0)				<= ep_src_o_int(0).cyc;
---	trig3(1)				<= ep_src_o_int(0).stb;
---	trig3(3 downto 2)	<= ep_src_o_int(0).adr;
---	trig3(19 downto 4) <= ep_src_o_int(0).dat;
---	trig3(20)			<= ep_src_i(0).ack;
---	trig3(21)			<= ep_src_i(0).err;
-
-
--- DEBUG SIGNALS FOR 20160315b ('inherited' from comparerawframes):
---	trig0(0)				<= tagger_snk_i(0).cyc;
---	trig0(1)				<= tagger_snk_i(0).stb;
---	trig0(3 downto 2)	<= tagger_snk_i(0).adr;
---	trig0(19 downto 4) <= tagger_snk_i(0).dat;
---	trig0(29 downto 25) <= senaldebug0(4 downto 0);
---	trig0(24 downto 20) <= senaldebug1(4 downto 0);	
---
---	trig1(0)	<= snk_fab_0.sof;
---	trig1(1) <= snk_fab_0.eof;
---	trig1(2) <= snk_fab_0.dvalid;
---	trig1(18 downto 3) <= snk_fab_0.data;
---	trig1(20 downto 19) <= snk_fab_0.addr;
---	trig1(21) <= snk_dreq(0);
---
---	trig2(0)  <= write_a;
---	trig2(21 downto 1) <= din_a;
---	trig2(31 downto 22) <= addr_a(9 downto 0);	
---	
---	trig3(0)				<= write_b;
---	trig3(21 downto 1) <= dout_b;
---	trig3(31 downto 22) <= addr_b(9 downto 0);
-	
--- 2016 03 29:
-
---	trig0(7 downto 0) <= senaldebug0;
---	trig2(8)				<= snk_fab_1.sof;
---	trig2(9)				<= snk_fab_1.eof;
---	trig2(11 downto 10)	<= snk_fab_1.addr;
---	trig2(27 downto 12)	<= snk_fab_1.data;
---	trig2(28)			<= snk_fab_1.dvalid;
---	
---	trig2(29)			<= ep_src_i(0).stall;
---	trig2(30)			<= ep_src_i(1).stall;
---	
---	trig0(8)				<= snk_fab_0.sof;
---	trig0(9)				<= snk_fab_0.eof;
---	trig0(11 downto 10)	<= snk_fab_0.addr;
---	trig0(27 downto 12)	<= snk_fab_0.data;
---	trig0(28)			<= snk_fab_0.dvalid;
---	
---	trig0(29)         <= tagger_snk_i(0).cyc;
---	trig0(30)         <= tagger_snk_i(1).cyc;
-----	
---	trig0(1 downto 0) <= sof;
---	trig0(3 downto 2) <= snk_dreq;--eof;
---	
---	trig1(15 downto 0)	<= tagger_snk_i(0).dat;
---	trig1(31 downto 16)  <= tagger_snk_i(1).dat;
-
---	trig1(4)				<= write_a;
---	trig1(14 downto 5) 			<= addr_a(9 downto 0);
---	trig1(24 downto 15)			<= addr_c(9 downto 0);
---	
---	trig2(20 downto 0) <= din_a;
---	trig3(20 downto 0) <= dout_c;
---
---	TRIG2(7 DOWNTO 0) <= senaldebug0;
---	trig2(15 downto 8) <= senaldebug1;
---	trig2(23 downto 16) <= senaldebug2;
 
 	
 	
