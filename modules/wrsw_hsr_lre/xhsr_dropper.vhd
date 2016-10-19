@@ -770,7 +770,7 @@ architecture behavioral of xhsr_dropper is
       state_wbmem1        <= s_IDLE;
    elsif rising_edge(clk_i) then
       wb_mem_wr           <= '0';
-      senaldebug_mem      <= x"01";
+      --senaldebug_mem      <= x"01";
       
       case state_wbmem0 is
          when s_IDLE =>
@@ -789,14 +789,14 @@ architecture behavioral of xhsr_dropper is
                      wb_mem_addr        <= curr_nodeid(0) & "0";
                      wb_mem_data_in     <= src_mac(0)(47 downto 16);
                      word_count         <= "01";
-                     senaldebug_mem     <= x"02";
+--                     senaldebug_mem     <= x"02";
                elsif word_count = "01" then
                      wb_mem_wr          <= '1';
                      wb_mem_addr        <= std_logic_vector(unsigned(wb_mem_addr)+1);
                      wb_mem_data_in     <= src_mac(0)(15 downto 0) & curr_seqnum(0);
                      word_count         <= "00";
                      wb_mem_busy(0)     <= '0';
-                     senaldebug_mem     <= x"03";
+--                     senaldebug_mem     <= x"03";
                      state_wbmem0       <= s_IDLE;
                end if;
             end if;
@@ -808,14 +808,14 @@ architecture behavioral of xhsr_dropper is
                   wb_mem_addr           <= std_logic_vector(to_unsigned(first_available(0),5)) & "0";
                   wb_mem_data_in        <= src_mac(0)(47 downto 16);
                   word_count            <= "01";
-                  senaldebug_mem        <= x"04";
+--                  senaldebug_mem        <= x"04";
                elsif word_count = "01" then
                   wb_mem_wr             <= '1';
                   wb_mem_addr           <= std_logic_vector(unsigned(wb_mem_addr)+1);
                   wb_mem_data_in        <= src_mac(0)(15 downto 0) & curr_seqnum(0);
                   word_count            <= "00";
                   wb_mem_busy(0)        <= '0';
-                  senaldebug_mem        <= x"05";
+--                  senaldebug_mem        <= x"05";
                   state_wbmem0          <= s_IDLE;
                end if;
             end if;
@@ -840,14 +840,14 @@ architecture behavioral of xhsr_dropper is
                      wb_mem_addr        <= curr_nodeid(1) & "0";
                      wb_mem_data_in     <= src_mac(1)(47 downto 16);
                      word_count         <= "01";
-                     senaldebug_mem     <= x"02";
+--                     senaldebug_mem     <= x"02";
                elsif word_count = "01" then
                      wb_mem_wr          <= '1';
                      wb_mem_addr        <= std_logic_vector(unsigned(wb_mem_addr)+1);
                      wb_mem_data_in     <= src_mac(1)(15 downto 0) & curr_seqnum(1);
                      word_count         <= "00";
                      wb_mem_busy(1)     <= '0';
-                     senaldebug_mem     <= x"03";
+--                     senaldebug_mem     <= x"03";
                      state_wbmem1       <= s_IDLE;
                end if;
             end if;
@@ -859,14 +859,14 @@ architecture behavioral of xhsr_dropper is
                   wb_mem_addr           <= std_logic_vector(to_unsigned(first_available(1),5)) & "0";
                   wb_mem_data_in        <= src_mac(1)(47 downto 16);
                   word_count            <= "01";
-                  senaldebug_mem        <= x"04";
+--                  senaldebug_mem        <= x"04";
                elsif word_count = "01" then
                   wb_mem_wr             <= '1';
                   wb_mem_addr           <= std_logic_vector(unsigned(wb_mem_addr)+1);
                   wb_mem_data_in        <= src_mac(1)(15 downto 0) & curr_seqnum(1);
                   word_count            <= "00";
                   wb_mem_busy(1)        <= '0';
-                  senaldebug_mem        <= x"05";
+--                  senaldebug_mem        <= x"05";
                   state_wbmem1          <= s_IDLE;
                end if;
             end if;
@@ -883,19 +883,19 @@ architecture behavioral of xhsr_dropper is
 --  src_o <= snk_i;
 --  snk_o <= src_i;
    
-   cs_icon : chipscope_icon
-   port map(
-      CONTROL0   => CONTROL0
-   );
-   cs_ila : chipscope_ila
-   port map(
-      CLK      => clk_i,
-      CONTROL   => CONTROL0,
-      TRIG0      => TRIG0,
-      TRIG1      => TRIG1,
-      TRIG2      => TRIG2,
-      TRIG3      => TRIG3
-   );
+--   cs_icon : chipscope_icon
+--   port map(
+--      CONTROL0   => CONTROL0
+--   );
+--   cs_ila : chipscope_ila
+--   port map(
+--      CLK      => clk_i,
+--      CONTROL   => CONTROL0,
+--      TRIG0      => TRIG0,
+--      TRIG1      => TRIG1,
+--      TRIG2      => TRIG2,
+--      TRIG3      => TRIG3
+--   );
    
    
 --   trig0(0) <= src_out(0).cyc;
@@ -926,38 +926,6 @@ architecture behavioral of xhsr_dropper is
 --   trig3(21 downto 14) <= std_logic_vector(to_unsigned(check_smac(0),8));
 --   trig3(29 downto 22) <= std_logic_vector(to_unsigned(first_available(0),8));
    
---   trig0(0) <= src_out(0).cyc;
---   trig0(1) <= src_out(0).stb;
---   trig0(3 downto 2) <= src_out(0).adr;
---   trig0(19 downto 4) <= src_out(0).dat;
---   trig0(20) <= src_i(0).ack;
---   trig0(21) <= src_i(0).stall;
---   trig0(29 downto 22) <= senaldebug(0)(7 downto 0);
---   
---   trig1(23 downto 0) <= available_pos(23 downto 0);
---   trig1(25 downto 24) <= wr_update_sig;
---   trig1(27 downto 26) <= wr_insert_sig;
---   trig1(29 downto 28) <= wb_mem_busy;
---   
---   trig2(0) <= write_node(0);
---   trig2(1) <= write_node(1);
---   trig2(2) <= check_smac_req(0);
---   trig2(3) <= check_smac_req(1);
---   trig2(4) <= mem_valid(0);
---   trig2(5) <= mem_valid(1);
---   trig2(6) <= match(0);
---   trig2(7) <= match(1);
---   trig2(8) <= mem_busy;
---   trig2(16 downto 9) <= std_logic_vector(to_unsigned(first_available(0),8));
---   
---   trig2(31 downto 18) <= curr_seqnum(0)(13 downto 0);
---   
---   trig3(4 downto 0) <= nodeid_wr(0);
---   trig3(9 downto 5) <= nodeid_rd(0);
---   
---   trig3(17 downto 10) <= senaldebug_mem;
---   trig3(31 downto 18) <= seqnum_rd(0)(13 downto 0);
-
    trig0(0) <= src_out(0).cyc;
    trig0(1) <= src_out(0).stb;
    trig0(3 downto 2) <= src_out(0).adr;
@@ -966,20 +934,54 @@ architecture behavioral of xhsr_dropper is
    trig0(21) <= src_i(0).stall;
    trig0(29 downto 22) <= senaldebug(0)(7 downto 0);
    
-   trig1 <= available_pos;
+   trig1(23 downto 0) <= available_pos(23 downto 0);
+   trig1(25 downto 24) <= wr_update_sig;
+   trig1(27 downto 26) <= wr_insert_sig;
+   trig1(29 downto 28) <= wb_mem_busy;
    
-   trig2(1 downto 0) <= wr_update_sig;
-   trig2(3 downto 2) <= wr_insert_sig;
-   trig2(5 downto 4) <= wb_mem_busy;
+   trig2(0) <= write_node(0);
+   trig2(1) <= write_node(1);
+   trig2(2) <= check_smac_req(0);
+   trig2(3) <= check_smac_req(1);
+   trig2(4) <= mem_valid(0);
+   trig2(5) <= mem_valid(1);
+   trig2(6) <= match(0);
+   trig2(7) <= match(1);
+   trig2(8) <= mem_busy;
+   trig2(16 downto 9) <= std_logic_vector(to_unsigned(first_available(0),8));
    
+   trig2(22 downto 18) <= curr_nodeid(0)(4 downto 0);
    
-   trig2(19 downto 6) <= curr_seqnum(0)(13 downto 0);
-   trig2(25 downto 20) <= wb_mem_addr;
-   trig2(27) <= wb_mem_wr;
-   trig2(29 downto 28) <= drop;
-   trig2(31 downto 30) <= accept;
+   trig3(4 downto 0) <= nodeid_wr(0);
+   trig3(9 downto 5) <= nodeid_rd(0);
    
-   
-   
-   trig3 <= wb_mem_data_in;
+   trig3(17 downto 10) <= senaldebug_mem;
+   trig3(31 downto 18) <= seqnum_rd(0)(13 downto 0);
+
+--   trig0(0) <= src_out(0).cyc;
+--   trig0(1) <= src_out(0).stb;
+--   trig0(3 downto 2) <= src_out(0).adr;
+--   trig0(19 downto 4) <= src_out(0).dat;
+--   trig0(20) <= src_i(0).ack;
+--   trig0(21) <= src_i(0).stall;
+--   trig0(29 downto 22) <= senaldebug(0)(7 downto 0);
+--   
+--   trig1 <= available_pos;
+--   
+--   trig2(1 downto 0) <= wr_update_sig;
+--   trig2(3 downto 2) <= wr_insert_sig;
+--   trig2(5 downto 4) <= wb_mem_busy;
+--   
+--   
+--   trig2(19 downto 6) <= curr_seqnum(0)(13 downto 0);
+--   trig2(25 downto 20) <= wb_mem_addr;
+--   trig2(27) <= wb_mem_wr;
+--   trig2(29 downto 28) <= drop;
+--   trig2(31 downto 30) <= accept;
+--   
+--   
+--   
+--   trig3(4 downto 0) <= nodeid_rd(0);
+--   trig3(12 downto 5) <= senaldebug_mem;
+--   trig3(31 downto 13) <= wb_mem_data_in(18 downto 0);
 end behavioral;

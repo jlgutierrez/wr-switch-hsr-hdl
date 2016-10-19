@@ -110,12 +110,15 @@ architecture behavioral of xhsr_dropper_mem is
 	signal	addr_a, addr_b						: std_logic_vector(c_addr_size-1 downto 0);
 	signal	din_a, din_b						: std_logic_vector(c_mem_width-1 downto 0);
 	signal	dout_a, dout_b						: std_logic_vector(c_mem_width-1 downto 0);
+   signal   nodeid_a_out, nodeid_b_out    : std_logic_vector(4 downto 0);
+   signal   match_a_out, match_b_out      : std_logic;
 	
 	signal senaldebug : std_logic_vector(7 downto 0);
 	
 	signal	mem_busy_a, mem_busy_b			: std_logic;
 	
 	signal	addr_int_a, addr_int_b			: integer;
+   signal   addr_int_a_d0, addr_int_b_d0  : integer;
 
 
 
@@ -124,6 +127,10 @@ architecture behavioral of xhsr_dropper_mem is
   begin 
 
 	senaldebug_o <= senaldebug;
+   nodeid_a_o <= nodeid_a_out;
+   match_a_o <= match_a_out;
+   match_b_o <= match_b_out;
+   nodeid_b_o <= nodeid_b_out;
 
 	U_mem : generic_dpram
 	generic map(
@@ -149,13 +156,17 @@ architecture behavioral of xhsr_dropper_mem is
 		qb_o			=> dout_b	
 	);
 	
+   addr_a <= std_logic_vector(to_unsigned(addr_int_a,3));
+   addr_b <= std_logic_vector(to_unsigned(addr_int_b,3));
+   
 	p_mem_control_a : process(clk_i)
+   variable match_int_a : std_logic := '0';
 	begin
 	
 		if rst_n_i = '0' then
 			senaldebug <= x"01";
 		elsif rising_edge(clk_i) then
-		
+         addr_int_a_d0 <= addr_int_a;
 			case state_a is
 				
 				when s_IDLE =>
@@ -163,9 +174,10 @@ architecture behavioral of xhsr_dropper_mem is
 					write_a <= '0';
 					mem_busy_a <= '0';
 					valid_a_o <= '0';
-					match_a_o <= '0';
+					match_a_out <= '0';
+               match_int_a := '0';
 					if rd_sig_a_i = '1' then
-						addr_a <= "000";
+						--addr_a <= "000";
 						addr_int_a <= 0;
 						state_a <= s_READING;
 						mem_busy_a <= '1';
@@ -180,52 +192,66 @@ architecture behavioral of xhsr_dropper_mem is
 				
 				when s_READING =>
 					senaldebug <= x"04";
-					addr_int_a <= addr_int_a + 1;
+
 					if(dout_a(47 downto 0) = smac_a_i) then
-						match_a_o 	<= '1';
-						nodeid_a_o 	<= std_logic_vector(to_unsigned(addr_int_a,3)) & "00";
+						match_a_out 	<= '1';
+						nodeid_a_out 	<= std_logic_vector(to_unsigned(addr_int_a_d0,3)) & "00";
 						seqnum_a_o  <= dout_a(63 downto 48);
 						valid_a_o	<= '1';
 						state_a 		<= s_IDLE;
 						mem_busy_a 	<= '0';
 						senaldebug <= x"05";
+                  match_int_a := '1';
 					elsif(dout_a(111 downto 64) = smac_a_i) then
-						match_a_o	<= '1';
-						nodeid_a_o	<= std_logic_vector(to_unsigned(addr_int_a,3)) & "01";
+						match_a_out	<= '1';
+						nodeid_a_out	<= std_logic_vector(to_unsigned(addr_int_a_d0,3)) & "01";
 						seqnum_a_o  <= dout_a(127 downto 112);
 						valid_a_o	<= '1';
 						state_a 		<= s_IDLE;
 						mem_busy_a 	<= '0';
 						senaldebug <= x"06";
+                  match_int_a := '1';
 					elsif(dout_a(175 downto 128) = smac_a_i) then
-						match_a_o	<= '1';
-						nodeid_a_o	<= std_logic_vector(to_unsigned(addr_int_a,3)) & "10";
+						match_a_out	<= '1';
+						nodeid_a_out	<= std_logic_vector(to_unsigned(addr_int_a_d0,3)) & "10";
 						seqnum_a_o  <= dout_a(191 downto 176);
 						valid_a_o	<= '1';
 						state_a 		<= s_IDLE;
 						mem_busy_a 	<= '0';
 						senaldebug <= x"07";
+                  match_int_a := '1';
 					elsif(dout_a(239 downto 192) = smac_a_i) then
-						match_a_o	<= '1';
-						nodeid_a_o	<= std_logic_vector(to_unsigned(addr_int_a,3)) & "11";
+						match_a_out	<= '1';
+						nodeid_a_out	<= std_logic_vector(to_unsigned(addr_int_a_d0,3)) & "11";
 						seqnum_a_o  <= dout_a(255 downto 240);
 						valid_a_o	<= '1';
 						state_a 		<= s_IDLE;
 						mem_busy_a 	<= '0';
 						senaldebug <= x"08";
+                  match_int_a := '1';
 					elsif addr_int_a > 7 then
-						match_a_o	<= '0';
+						match_a_out	<= '0';
 						valid_a_o	<= '1';
 						state_a		<= s_IDLE;
 						mem_busy_a 	<= '0';
 						senaldebug <= x"09";
-					end if;				
+                  addr_int_a <= 0;
+					else
+                  addr_int_a  <= addr_int_a + 1;
+               end if;				
+               
 				
 				when s_WRITING =>
 					
 					senaldebug <= x"0a";
-					write_a <= '1';
-					addr_a <= nodeid_a_i(4 downto 2);
+					addr_int_a <= to_integer(unsigned(nodeid_a_i(4 downto 2)));
+               if addr_int_a = to_integer(unsigned(nodeid_a_i(4 downto 2))) then
+                  write_a <= '1';
+                  valid_a_o <= '1';
+                  state_a <= s_IDLE;
+  					mem_busy_a 	<= '0';
+
+               end if;
 					case nodeid_a_i(1 downto 0) is
 						when "00" =>
 							byte_mask_a <= x"000000ff";
@@ -245,11 +271,7 @@ architecture behavioral of xhsr_dropper_mem is
 							senaldebug <= x"0e";
 						when others =>
 					end case;
-					
-					valid_a_o <= '1';
-					
-					state_a <= s_IDLE;
-					mem_busy_a 	<= '0';
+										
 					
 				when others =>
 				
@@ -261,90 +283,117 @@ architecture behavioral of xhsr_dropper_mem is
 
 
 	p_mem_control_b : process(clk_i)
+   variable match_int_b : std_logic := '0';
 	begin
 	
 		if rst_n_i = '0' then
-		
+--			senaldebug <= x"01";
 		elsif rising_edge(clk_i) then
-		
+         addr_int_b_d0 <= addr_int_b;
 			case state_b is
 				
 				when s_IDLE =>
-					
+					-- senaldebug <= x"02";
 					write_b <= '0';
-					mem_busy_b 	<= '0';
+					mem_busy_b <= '0';
 					valid_b_o <= '0';
-					match_b_o <= '0';
+					match_b_out <= '0';
+               match_int_b := '0';
 					if rd_sig_b_i = '1' then
-						addr_b <= "000";
+						--addr_b <= "000";
 						addr_int_b <= 0;
 						state_b <= s_READING;
-						mem_busy_b 	<= '1';
+						mem_busy_b <= '1';
+						-- senaldebug <= x"02";
 					end if;
 					
 					if wr_sig_b_i = '1' then
 						state_b <= s_WRITING;
-						mem_busy_b 	<= '1';
+						mem_busy_b <= '1';
+						-- senaldebug <= x"03";
 					end if;
 				
 				when s_READING =>
 					
-					addr_int_b <= addr_int_b + 1;
 					if(dout_b(47 downto 0) = smac_b_i) then
-						match_b_o 	<= '1';
-						nodeid_b_o 	<= std_logic_vector(to_unsigned(addr_int_b,3)) & "00";
+						match_b_out 	<= '1';
+						nodeid_b_out 	<= std_logic_vector(to_unsigned(addr_int_b_d0,3)) & "00";
+						seqnum_b_o  <= dout_b(63 downto 48);
 						valid_b_o	<= '1';
 						state_b 		<= s_IDLE;
 						mem_busy_b 	<= '0';
+						-- senaldebug <= x"05";
+                  match_int_b := '1';
 					elsif(dout_b(111 downto 64) = smac_b_i) then
-						match_b_o	<= '1';
-						nodeid_b_o	<= std_logic_vector(to_unsigned(addr_int_b,3)) & "01";
+						match_b_out	<= '1';
+						nodeid_b_out	<= std_logic_vector(to_unsigned(addr_int_b_d0,3)) & "01";
+						seqnum_b_o  <= dout_b(127 downto 112);
 						valid_b_o	<= '1';
 						state_b 		<= s_IDLE;
 						mem_busy_b 	<= '0';
+						-- senaldebug <= x"06";
+                  match_int_b := '1';
 					elsif(dout_b(175 downto 128) = smac_b_i) then
-						match_b_o	<= '1';
-						nodeid_b_o	<= std_logic_vector(to_unsigned(addr_int_b,3)) & "10";
+						match_b_out	<= '1';
+						nodeid_b_out	<= std_logic_vector(to_unsigned(addr_int_b_d0,3)) & "10";
+						seqnum_b_o  <= dout_b(191 downto 176);
 						valid_b_o	<= '1';
 						state_b 		<= s_IDLE;
 						mem_busy_b 	<= '0';
+						-- senaldebug <= x"07";
+                  match_int_b := '1';
 					elsif(dout_b(239 downto 192) = smac_b_i) then
-						match_b_o	<= '1';
-						nodeid_b_o	<= std_logic_vector(to_unsigned(addr_int_b,3)) & "11";
+						match_b_out	<= '1';
+						nodeid_b_out	<= std_logic_vector(to_unsigned(addr_int_b_d0,3)) & "11";
+						seqnum_b_o  <= dout_b(255 downto 240);
 						valid_b_o	<= '1';
 						state_b 		<= s_IDLE;
 						mem_busy_b 	<= '0';
+						-- senaldebug <= x"08";
+                  match_int_b := '1';
 					elsif addr_int_b > 7 then
-						match_b_o	<= '0';
+						match_b_out	<= '0';
 						valid_b_o	<= '1';
 						state_b		<= s_IDLE;
 						mem_busy_b 	<= '0';
-					end if;				
-				
+						-- senaldebug <= x"09";
+                  addr_int_b <= 0;
+					else
+                  addr_int_b  <= addr_int_b + 1;
+               end if;				
+               
+
 				when s_WRITING =>
-				
-					write_b <= '1';
-					addr_b <= nodeid_b_i(4 downto 2);
+					
+					-- senaldebug <= x"0a";
+					addr_int_b <= to_integer(unsigned(nodeid_b_i(4 downto 2)));
+               if addr_int_b = to_integer(unsigned(nodeid_b_i(4 downto 2))) then
+                  write_b <= '1';
+                  valid_b_o <= '1';
+                  state_b <= s_IDLE;
+  					mem_busy_b 	<= '0';
+
+               end if;
 					case nodeid_b_i(1 downto 0) is
 						when "00" =>
 							byte_mask_b <= x"000000ff";
 							din_b			<= x"000000000000000000000000000000000000000000000000" & seqnum_b_i & smac_b_i;
+							-- senaldebug <= x"0b";
 						when "01" =>
 							byte_mask_b <= x"0000ff00";
 							din_b			<= x"00000000000000000000000000000000" & seqnum_b_i & smac_b_i & x"0000000000000000";
+							-- senaldebug <= x"0c";
 						when "10" =>
 							byte_mask_b <= x"00ff0000";
 							din_b 		<= x"0000000000000000" & seqnum_b_i & smac_b_i & x"00000000000000000000000000000000";
+							-- senaldebug <= x"0d";
 						when "11" =>
 							byte_mask_b	<= x"ff000000";
 							din_b			<= seqnum_b_i & smac_b_i & x"000000000000000000000000000000000000000000000000";
+							-- senaldebug <= x"0e";
 						when others =>
 					end case;
-					
-					valid_b_o <= '1';
-					
-					state_b <= s_IDLE;
-					mem_busy_b 	<= '0';
+										
 					
 				when others =>
 				
@@ -355,5 +404,31 @@ architecture behavioral of xhsr_dropper_mem is
 	
 	mem_busy_o <= mem_busy_a or mem_busy_b;
 	
+--   cs_icon : chipscope_icon
+--   port map(
+--      CONTROL0   => CONTROL0
+--   );
+--   cs_ila : chipscope_ila
+--   port map(
+--      CLK      => clk_i,
+--      CONTROL   => CONTROL0,
+--      TRIG0      => TRIG0,
+--      TRIG1      => TRIG1,
+--      TRIG2      => TRIG2,
+--      TRIG3      => TRIG3
+--   );
+   
+   trig0(31 downto 8) <= smac_b_i(39 downto 16);
+   trig0(4 downto 0) <= nodeid_b_out;
+   trig1(15 downto 0) <= smac_b_i(15 downto 0);
+   trig1(20 downto 16) <= nodeid_b_i;
+   trig1(21) <= rd_sig_b_i;
+   trig1(22) <= wr_sig_b_i;
+   trig1(30 downto 23) <= senaldebug;
+   trig1(31) <= write_b;
+   trig2(2 downto 0) <= std_logic_vector(to_unsigned(addr_int_b,3));
+   trig2(31 downto 3) <= din_b(92 downto 64);
+   trig3(30 downto 0) <= dout_b(94 downto 64);
+   trig3(31) <= match_b_out;
 
 end behavioral;
