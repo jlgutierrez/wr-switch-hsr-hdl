@@ -178,6 +178,8 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 	signal   bound_ep1_count		: std_logic_vector(31 downto 0);
 	signal   dup_ep0_count			: std_logic_vector(31 downto 0);
 	signal   dup_ep1_count			: std_logic_vector(31 downto 0);
+   
+   signal   doutc_dvalid_count   : integer := 0;
 	
 
   begin 
@@ -817,6 +819,11 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 			
 				write_c		<= '0';
 				senaldebug2 <= x"02";
+            
+            if snk_fab_1.dvalid = '1' then
+               doutc_dvalid_count <= doutc_dvalid_count+1;
+            end if;
+            
 				case rd_state1 is
 					
 					when IDLE =>
@@ -881,6 +888,7 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 								snk_fab_1.eof		<= '0';
 								snk_fab_1.bytesel	<= '0';
 								senaldebug2 <= x"0A";
+                        doutc_dvalid_count <= 0;
 							elsif(dout_c(19 downto 18) = "11" and dout_c(7 downto 0) = x"AA") then
 							-- EOF
 								addr_c <= addr;
@@ -904,7 +912,7 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 								end if;
 								rd_state1 			<= FINISH_CYCLE;
                         
-                     elsif rd_offset_c = 8 then
+                     elsif doutc_dvalid_count = 7 then
                      
                         snk_fab_1.sof		<= '0';
 								snk_fab_1.eof		<= '0';
@@ -912,7 +920,7 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 								
                         -- Reading FSM number 2 is responsible for inserting the correct LaneID bit
                         -- (one of the fields of the Path ID):
-                        snk_fab_1.data		<= (dout_c(15 downto 0) and x"0001");
+                        snk_fab_1.data		<= (dout_c(15 downto 0) or x"1000");
 								snk_fab_1.addr		<= dout_c(19 downto 18);
 								snk_fab_1.dvalid	<= dout_c(20);
 								senaldebug1 <= x"0C";
@@ -1006,19 +1014,24 @@ architecture behavioral of wrsw_hsr_arbfromtaggers is
 --	tagger_snk_o <= ep_src_i;
 	
 	-- DEBUG --
---	cs_icon : chipscope_icon
---	port map(
---		CONTROL0	=> CONTROL0
---	);
---	cs_ila : chipscope_ila
---	port map(
---		CLK		=> clk_i,
---		CONTROL	=> CONTROL0,
---		TRIG0		=> TRIG0,
---		TRIG1		=> TRIG1,
---		TRIG2		=> TRIG2,
---		TRIG3		=> TRIG3
---	);
+	cs_icon : chipscope_icon
+	port map(
+		CONTROL0	=> CONTROL0
+	);
+	cs_ila : chipscope_ila
+	port map(
+		CLK		=> clk_i,
+		CONTROL	=> CONTROL0,
+		TRIG0		=> TRIG0,
+		TRIG1		=> TRIG1,
+		TRIG2		=> TRIG2,
+		TRIG3		=> TRIG3
+	);
+   
+   trig0(10 downto 0) <= std_logic_vector(rd_offset_c);
+   trig0(26 downto 11) <= snk_fab_1.data;
+   trig0(27) <= snk_fab_1.dvalid;
+   trig1(9 downto 0) <= std_logic_vector(to_unsigned(doutc_dvalid_count,10));
 
 
 	

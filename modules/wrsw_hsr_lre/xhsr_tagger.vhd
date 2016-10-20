@@ -57,7 +57,7 @@ entity xhsr_tagger is
     g_dat_width : integer :=16;
     g_size    : integer := 1024; -- things for the fifo
     g_with_fc : boolean := false; -- things for the fifo
-    g_hsr_path_id : std_logic_vector(3 downto 0)
+    g_hsr_path_id : std_logic_vector(3 downto 0) := x"0"
     );
   port(
 
